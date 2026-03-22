@@ -1,0 +1,14 @@
+// Haversine formula  returns distance in km
+const haversineKm = (lat1, lon1, lat2, lon2) => {
+  const R  = 6371;
+  const dL = ((lat2 - lat1) * Math.PI) / 180;
+  const dO = ((lon2 - lon1) * Math.PI) / 180;
+  const a  =
+    Math.sin(dL / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+    Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dO / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
+module.exports = { haversineKm };
