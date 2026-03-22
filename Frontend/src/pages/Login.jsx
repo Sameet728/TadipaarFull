@@ -2,79 +2,105 @@ import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import adminAPI from '../api/api'
-import { Eye, EyeOff, LogIn } from 'lucide-react'
+import { Eye, EyeOff, LogIn, Shield } from 'lucide-react'
+
+const SEED = [
+  { role: 'CP',  username: 'cp_admin',   label: 'Commissioner of Police', color: 'border-yellow-400 bg-yellow-400/10 text-yellow-200' },
+  { role: 'DCP', username: 'dcp_zone1',  label: 'DCP — Zone 1',           color: 'border-blue-400   bg-blue-400/10   text-blue-200'   },
+  { role: 'ACP', username: 'acp_pimpri', label: 'ACP — Pimpri',           color: 'border-green-400  bg-green-400/10  text-green-200'  },
+  { role: 'PS',  username: 'ps_pimpri',  label: 'PS — Pimpri',            color: 'border-slate-400  bg-slate-400/10  text-slate-200'  },
+]
+
+const ROLE_BADGE = {
+  CP:  'bg-yellow-500/20 text-yellow-300 border border-yellow-500/40',
+  DCP: 'bg-blue-500/20   text-blue-300   border border-blue-500/40',
+  ACP: 'bg-green-500/20  text-green-300  border border-green-500/40',
+  PS:  'bg-slate-500/20  text-slate-300  border border-slate-500/40',
+}
 
 export default function Login() {
-  const { login }  = useAuth()
-  const navigate   = useNavigate()
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [showPw,   setShowPw]   = useState(false)
-  const [loading,  setLoading]  = useState(false)
-  const [error,    setError]    = useState('')
+  const { login }    = useAuth()
+  const navigate     = useNavigate()
+  const [username,   setUsername]   = useState('')
+  const [password,   setPassword]   = useState('')
+  const [showPw,     setShowPw]     = useState(false)
+  const [loading,    setLoading]    = useState(false)
+  const [error,      setError]      = useState('')
 
   const handleLogin = async () => {
     if (!username.trim()) { setError('Enter your username'); return }
     if (!password.trim()) { setError('Enter your password'); return }
-
     setLoading(true)
     setError('')
-
     try {
       const res = await adminAPI.post('/admin/auth/login', {
         username: username.trim(),
         password,
       })
-
       if (res.data.success) {
         login(res.data.admin, res.data.token)
         navigate('/dashboard')
       }
     } catch (e) {
-      setError(e?.response?.data?.message || 'Login failed. Check credentials.')
+      setError(e?.response?.data?.message || 'Invalid credentials. Please try again.')
     } finally {
       setLoading(false)
     }
   }
 
-  const roleColors = {
-    CP:  'bg-yellow-100 text-yellow-800 border-yellow-300',
-    DCP: 'bg-blue-100   text-blue-800   border-blue-300',
-    ACP: 'bg-green-100  text-green-800  border-green-300',
-    PS:  'bg-gray-100   text-gray-800   border-gray-300',
-  }
-
-  const seedAccounts = [
-    { role:'CP',  username:'cp_admin',   label:'CP Pimpri Chinchwad' },
-    { role:'DCP', username:'dcp_zone1',  label:'DCP Zone 1' },
-    { role:'ACP', username:'acp_pimpri', label:'ACP Pimpri' },
-    { role:'PS',  username:'ps_pimpri',  label:'PS Pimpri' },
-  ]
-
   return (
-    <div className="min-h-screen bg-police-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div
+      className="min-h-screen flex items-center justify-center p-4"
+      style={{
+        background: 'linear-gradient(135deg, #0F172A 0%, #1E3A8A 50%, #0F172A 100%)',
+      }}
+    >
+      {/* Subtle grid overlay */}
+      <div
+        className="absolute inset-0 opacity-5"
+        style={{
+          backgroundImage: `linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)`,
+          backgroundSize: '40px 40px',
+        }}
+      />
 
-        {/* Card */}
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <span className="text-5xl">🚔</span>
-            <h1 className="text-2xl font-bold text-gray-800 mt-3">Project Tadipaar</h1>
-            <p className="text-gray-400 text-sm mt-1">Maharashtra Police — Admin Panel</p>
+      <div className="relative w-full max-w-md">
+
+        {/* ── Header ── */}
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-white/10 border border-white/20 backdrop-blur mb-4 text-4xl">
+            🚔
           </div>
+          <h1 className="text-3xl font-black text-white tracking-tight">
+            PROJECT TADIPAAR
+          </h1>
+          <p className="text-blue-300 text-sm font-semibold tracking-widest mt-1 uppercase">
+            Maharashtra Police
+          </p>
+          <div className="flex items-center justify-center gap-2 mt-2">
+            <div className="h-px w-16 bg-white/20" />
+            <Shield size={12} className="text-white/40" />
+            <div className="h-px w-16 bg-white/20" />
+          </div>
+          <p className="text-white/40 text-xs mt-2 tracking-wider uppercase">
+            Externment Monitoring System — Admin Panel
+          </p>
+        </div>
+
+        {/* ── Login card ── */}
+        <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-7 shadow-2xl">
 
           {/* Error */}
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-3 mb-5">
-              {error}
+            <div className="flex items-center gap-2 bg-red-500/20 border border-red-500/40 text-red-300 text-sm rounded-xl px-4 py-3 mb-6">
+              <span className="text-base">⚠️</span> {error}
             </div>
           )}
 
-          {/* Form */}
-          <div className="space-y-4">
+          <div className="space-y-5">
+            {/* Username */}
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+              <label className="block text-xs font-bold text-white/50 uppercase tracking-widest mb-2">
                 Username
               </label>
               <input
@@ -85,12 +111,14 @@ export default function Login() {
                 placeholder="e.g. cp_admin"
                 autoCapitalize="none"
                 autoCorrect="off"
-                className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-police-500 focus:border-transparent"
+                spellCheck={false}
+                className="w-full bg-white/10 border border-white/20 text-white placeholder-white/30 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
               />
             </div>
 
+            {/* Password */}
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+              <label className="block text-xs font-bold text-white/50 uppercase tracking-widest mb-2">
                 Password
               </label>
               <div className="relative">
@@ -99,23 +127,24 @@ export default function Login() {
                   value={password}
                   onChange={e => setPassword(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleLogin()}
-                  placeholder="Enter password"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 pr-11 text-sm focus:outline-none focus:ring-2 focus:ring-police-500 focus:border-transparent"
+                  placeholder="Enter your password"
+                  className="w-full bg-white/10 border border-white/20 text-white placeholder-white/30 rounded-xl px-4 py-3 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPw(s => !s)}
-                  className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white/80 transition-colors"
                 >
-                  {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
+                  {showPw ? <EyeOff size={17} /> : <Eye size={17} />}
                 </button>
               </div>
             </div>
 
+            {/* Sign In button */}
             <button
               onClick={handleLogin}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 bg-police-600 text-white py-3 rounded-xl font-semibold text-sm hover:bg-police-700 disabled:opacity-50 transition-colors mt-2"
+              className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:bg-blue-800 disabled:opacity-60 text-white font-bold py-3.5 rounded-xl text-sm tracking-wide transition-all shadow-lg shadow-blue-900/50 mt-2"
             >
               {loading ? (
                 <span className="flex items-center gap-2">
@@ -123,36 +152,42 @@ export default function Login() {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
                   </svg>
-                  Signing in...
+                  Authenticating...
                 </span>
               ) : (
-                <><LogIn size={16} /> Sign In</>
+                <><LogIn size={16} /> SIGN IN</>
               )}
             </button>
           </div>
         </div>
 
-        {/* Seed account hints */}
-        <div className="mt-5 bg-white/10 rounded-xl p-4 backdrop-blur">
-          <p className="text-white/60 text-xs font-semibold uppercase tracking-wide mb-3">
-            Default Test Accounts (password: admin123)
+        {/* ── Quick fill accounts ── */}
+        <div className="mt-5">
+          <p className="text-white/30 text-xs font-semibold uppercase tracking-widest text-center mb-3">
+            Quick Access — Test Accounts (admin123)
           </p>
           <div className="grid grid-cols-2 gap-2">
-            {seedAccounts.map(a => (
+            {SEED.map(a => (
               <button
                 key={a.username}
                 onClick={() => { setUsername(a.username); setPassword('admin123') }}
-                className={`text-left px-3 py-2 rounded-lg border text-xs font-medium hover:opacity-80 transition-opacity ${roleColors[a.role]}`}
+                className={`text-left px-3.5 py-2.5 rounded-xl border text-xs font-medium hover:opacity-80 transition-opacity ${a.color}`}
               >
-                <span className="font-bold">[{a.role}]</span> {a.label}
-                <div className="text-gray-500 font-mono mt-0.5">{a.username}</div>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className={`text-xs font-black px-1.5 py-0.5 rounded-md ${ROLE_BADGE[a.role]}`}>
+                    {a.role}
+                  </span>
+                </div>
+                <div className="font-semibold leading-tight">{a.label}</div>
+                <div className="font-mono text-white/40 text-xs mt-0.5">{a.username}</div>
               </button>
             ))}
           </div>
-          <p className="text-white/40 text-xs mt-3 text-center">
-            Click any card to autofill → then click Sign In
+          <p className="text-white/20 text-xs text-center mt-3">
+            Tap a card to autofill · then press Sign In
           </p>
         </div>
+
       </div>
     </div>
   )
