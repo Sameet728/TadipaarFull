@@ -1,0 +1,73 @@
+{
+  "expo": {
+    "name": "Maha Police Tadipaar",
+    "slug": "tadipaar-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/images/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#1a5f7a"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.maharashtrapolice.tadipaar",
+      "config": {
+        "usesNonExemptEncryption": false
+      },
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app needs camera access to capture your check-in selfie",
+        "NSLocationWhenInUseUsageDescription": "This app needs location access for check-in verification",
+        "NSLocationAlwaysUsageDescription": "This app needs location access for check-in verification"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#1a5f7a"
+      },
+      "package": "com.maharashtrapolice.tadipaar",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.RECORD_AUDIO"
+      ],
+      "config": {
+        "googleMaps": {
+          "apiKey": "YOUR_GOOGLE_MAPS_API_KEY"
+        }
+      }
+    },
+    "web": {
+      "favicon": "./assets/images/icon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-location",
+      "expo-camera",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app needs access to your photos to upload check-in selfies",
+          "cameraPermission": "The app needs camera access to capture check-in selfies"
+        }
+      ],
+      "expo-font"
+    ],
+    "extra": {
+      "apiBaseUrl": "https://your-api-server.com/api",
+      "eas": {
+        "projectId": "891b9bf8-fa7d-4860-a66b-230630ae2567"
+      }
+    },
+    "owner": "sameet728"
+  }
+}
