@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS checkins (
   longitude        DECIMAL(10,7) NOT NULL,
   accuracy         DECIMAL(8,2),
   status           VARCHAR(50) DEFAULT 'pending',
+  violation_reason TEXT,
   remarks          TEXT,
   checked_in_at    TIMESTAMPTZ DEFAULT NOW(),
   reviewed_at      TIMESTAMPTZ,
