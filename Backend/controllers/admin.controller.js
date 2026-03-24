@@ -1,3 +1,4 @@
+const bcrypt = require('bcrypt');
 const { query } = require('../config/db');
 
 // ─────────────────────────────────────────────────────────
@@ -539,6 +540,84 @@ const getAllCheckIns = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+// POST /api/admin/add-admin
+// CP can create only DCP/ACP/PS admins
+const addAdmin = async (req, res, next) => {
+  try {
+    if (!req.user || req.user.role !== 'CP') {
+      return res.status(403).json({ success: false, message: 'Only CP can create admin users.' });
+    }
+
+    const { name, login_id, password, role } = req.body;
+
+    if (!name || !login_id || !password || !role) {
+      return res.status(400).json({
+        success: false,
+        message: 'name, login_id, password, role are required.',
+      });
+    }
+
+    const normalizedRole = String(role).trim().toUpperCase();
+    const allowedRoles   = ['DCP', 'ACP', 'PS'];
+
+    if (!allowedRoles.includes(normalizedRole)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Allowed roles are DCP, ACP, PS only.',
+      });
+    }
+
+    if (normalizedRole === 'CP') {
+      return res.status(400).json({ success: false, message: 'Creating CP role is not allowed.' });
+    }
+
+    const loginId = String(login_id).trim();
+
+    const columnResult = await query(
+      `SELECT column_name
+       FROM information_schema.columns
+       WHERE table_schema = 'public'
+         AND table_name = 'admins'
+         AND column_name IN ('login_id', 'username')`
+    );
+
+    const hasLoginId = columnResult.rows.some((r) => r.column_name === 'login_id');
+    const hasUsername = columnResult.rows.some((r) => r.column_name === 'username');
+    const loginColumn = hasLoginId ? 'login_id' : (hasUsername ? 'username' : null);
+
+    if (!loginColumn) {
+      return res.status(500).json({
+        success: false,
+        message: 'Admins table is missing login identifier column.',
+      });
+    }
+
+    const existing = await query(
+      `SELECT id FROM admins WHERE ${loginColumn} = $1 LIMIT 1`,
+      [loginId]
+    );
+
+    if (existing.rows.length > 0) {
+      return res.status(409).json({ success: false, message: 'Login ID already exists.' });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const created = await query(
+      `INSERT INTO admins (name, ${loginColumn}, password, role)
+       VALUES ($1, $2, $3, $4)
+       RETURNING id, name, ${loginColumn} AS login_id, role`,
+      [String(name).trim(), loginId, hashedPassword, normalizedRole]
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: 'Admin user created successfully.',
+      admin: created.rows[0],
+    });
+  } catch (err) { next(err); }
+};
+
 module.exports = {
   getHierarchy,
   getCriminals,
@@ -549,4 +628,5 @@ module.exports = {
   addRestrictedArea,
   deleteRestrictedArea,
   getAllCheckIns,
+  addAdmin,
 };

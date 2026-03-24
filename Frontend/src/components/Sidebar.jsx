@@ -65,6 +65,9 @@ export default function Sidebar({ open }) {
               REGISTRY MANAGEMENT
             </p>
             <NavItem to="/register" icon={UserPlus} label="REGISTER EXTERNEE" />
+            {role === 'CP' && (
+              <NavItem to="/add-admin" icon={UserPlus} label="ADD ADMIN" />
+            )}
           </>
         )}
       </nav>

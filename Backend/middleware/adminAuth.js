@@ -30,6 +30,7 @@ const adminProtect = async (req, res, next) => {
     }
 
     req.admin = result.rows[0];
+    req.user  = result.rows[0];
     next();
   } catch (err) {
     next(err);

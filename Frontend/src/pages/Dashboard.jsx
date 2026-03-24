@@ -22,6 +22,10 @@ export default function Dashboard() {
   const [criminals, setCriminals] = useState([]);
   const [filters, setFilters] = useState({});
   const [loading, setLoading] = useState(true);
+  const [newAdmin, setNewAdmin] = useState({ name: '', login_id: '', password: '', role: 'DCP' });
+  const [adminCreateLoading, setAdminCreateLoading] = useState(false);
+  const [adminCreateMsg, setAdminCreateMsg] = useState('');
+  const [adminCreateErr, setAdminCreateErr] = useState('');
 
   const load = useCallback(async (extraFilters = {}) => {
     setLoading(true);
@@ -90,6 +94,32 @@ export default function Dashboard() {
     })), 'dashboard_criminals.csv');
   };
 
+  const handleAdminCreate = async (e) => {
+    e.preventDefault();
+    setAdminCreateMsg('');
+    setAdminCreateErr('');
+
+    if (!newAdmin.name || !newAdmin.login_id || !newAdmin.password || !newAdmin.role) {
+      setAdminCreateErr('All fields are required.');
+      return;
+    }
+
+    try {
+      setAdminCreateLoading(true);
+      const res = await adminAPI.post('/admin/add-admin', newAdmin);
+      if (res.data?.success) {
+        setAdminCreateMsg('Admin created successfully.');
+        setNewAdmin({ name: '', login_id: '', password: '', role: 'DCP' });
+      } else {
+        setAdminCreateErr('Could not create admin user.');
+      }
+    } catch (err) {
+      setAdminCreateErr(err?.response?.data?.message || 'Failed to create admin user.');
+    } finally {
+      setAdminCreateLoading(false);
+    }
+  };
+
   const Card = ({ title, children, className = '' }) => (
     <div className={`bg-white rounded-lg shadow-sm border border-slate-200 p-6 ${className}`}>
       <h3 className="text-xs font-black text-police-slate mb-4 uppercase tracking-widest border-b border-slate-100 pb-3 flex items-center">
@@ -122,6 +152,57 @@ export default function Dashboard() {
       <div className="mb-8">
         <Filters onFilter={onFilter} onDownload={handleDownload} loading={loading} />
       </div>
+
+      {role === 'CP' && (
+        <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-8">
+          <h2 className="text-xs font-black tracking-widest text-police-slate mb-4 uppercase border-b border-slate-100 pb-3">
+            ADD ADMIN USER
+          </h2>
+
+          <form onSubmit={handleAdminCreate} className="grid grid-cols-1 md:grid-cols-5 gap-3">
+            <input
+              type="text"
+              placeholder="Name"
+              value={newAdmin.name}
+              onChange={(e) => setNewAdmin((p) => ({ ...p, name: e.target.value }))}
+              className="border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-police-blue"
+            />
+            <input
+              type="text"
+              placeholder="Login ID"
+              value={newAdmin.login_id}
+              onChange={(e) => setNewAdmin((p) => ({ ...p, login_id: e.target.value }))}
+              className="border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-police-blue"
+            />
+            <input
+              type="password"
+              placeholder="Password"
+              value={newAdmin.password}
+              onChange={(e) => setNewAdmin((p) => ({ ...p, password: e.target.value }))}
+              className="border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-police-blue"
+            />
+            <select
+              value={newAdmin.role}
+              onChange={(e) => setNewAdmin((p) => ({ ...p, role: e.target.value }))}
+              className="border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-police-blue"
+            >
+              <option value="DCP">DCP</option>
+              <option value="ACP">ACP</option>
+              <option value="PS">PS</option>
+            </select>
+            <button
+              type="submit"
+              disabled={adminCreateLoading}
+              className="bg-police-blue text-white rounded-md px-4 py-2 text-sm font-bold tracking-wide disabled:opacity-60"
+            >
+              {adminCreateLoading ? 'CREATING...' : 'CREATE ADMIN'}
+            </button>
+          </form>
+
+          {adminCreateMsg && <p className="text-green-700 text-sm mt-3">{adminCreateMsg}</p>}
+          {adminCreateErr && <p className="text-red-600 text-sm mt-3">{adminCreateErr}</p>}
+        </div>
+      )}
 
       {/* TODAY'S SNAPSHOT (LIVE SYSTEM STATUS) */}
       {dash?.summary && (

@@ -9,6 +9,7 @@ import CriminalProfile from './pages/CriminalProfile'
 import RegisterCriminal from './pages/RegisterCriminal'
 import Violations from './pages/Violations'
 import MissedCheckIns from './pages/MissedCheckIns'
+import AddAdmin from './pages/AddAdmin'
 
 const PrivateRoute = ({ children }) => {
   const { auth, loading } = useAuth()
@@ -36,6 +37,7 @@ const AppRoutes = () => {
         <Route path="criminals"      element={<CriminalsList />} />
         <Route path="criminals/:id"  element={<CriminalProfile />} />
         <Route path="register"       element={<RegisterCriminal />} />
+        <Route path="add-admin"      element={<AddAdmin />} />
         <Route path="violations"     element={<Violations />} />
         <Route path="missed"         element={<MissedCheckIns />} />
       </Route>

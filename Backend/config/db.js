@@ -1,23 +1,36 @@
 const { Pool } = require('pg');
-require('dotenv').config();
+require('dotenv').config({ path: require('path').resolve(__dirname, '..', '.env') });
+
+const databaseUrl = (process.env.DATABASE_URL || '').trim();
+
+if (databaseUrl) {
+  console.log('[DB] DATABASE_URL loaded:', databaseUrl.slice(0, 20) + '...');
+} else {
+  console.warn('[DB] DATABASE_URL is not set. Using fallback DB config.');
+}
 
 let poolConfig;
 
-if (process.env.DATABASE_URL) {
+if (databaseUrl) {
   poolConfig = {
-    connectionString: process.env.DATABASE_URL,
+    connectionString: databaseUrl,
     ssl: { rejectUnauthorized: false },
     max: 10,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 5000,
   };
 } else {
+  const dbPassword = process.env.DB_PASSWORD;
+  if (!dbPassword || !String(dbPassword).trim()) {
+    throw new Error('DB_PASSWORD is required when DATABASE_URL is not set.');
+  }
+
   poolConfig = {
     host:     process.env.DB_HOST     || 'localhost',
     port:     parseInt(process.env.DB_PORT || '5432'),
     database: process.env.DB_NAME     || 'tadipaar',
     user:     process.env.DB_USER     || 'postgres',
-    password: process.env.DB_PASSWORD || '',
+    password: String(dbPassword).trim(),
     max: 10,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 5000,
