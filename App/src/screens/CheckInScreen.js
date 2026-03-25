@@ -307,10 +307,18 @@ const CheckInScreen = () => {
 
       // ── Face verification failure — show modal ──────────────────────────────
       if (faceCheckStatus && FACE_STATUS[faceCheckStatus]) {
+        const similarity = data?.faceSimilarity;
+        const threshold  = data?.faceThreshold;
+        const detail =
+          similarity != null && threshold != null
+            ? `\n\nMatch: ${similarity}% (min ${threshold}%)`
+            : similarity != null
+              ? `\n\nMatch: ${similarity}%`
+              : '';
         setFaceResult({
           faceCheckStatus,
-          faceSimilarity: data.faceSimilarity ?? null,
-          reason:         data.reason || data.message || 'Face verification failed.',
+          faceSimilarity: similarity ?? null,
+          reason:         (data.reason || data.message || 'Face verification failed.') + detail,
         });
         setFaceModalVisible(true);
       } else if (err?.response?.status === 409) {

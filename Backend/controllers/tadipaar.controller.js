@@ -1,7 +1,7 @@
 const { query }       = require('../config/db');
 const { cloudinary }  = require('../config/cloudinary');
 const { haversineKm } = require('../utils/geoUtils');
-const { verifyFace }  = require('../services/faceVerification');
+const { verifyFace }  = require('../utils/faceVerification');
 
 // ─────────────────────────────────────────────────────────────────
 // POST /api/tadipaar/checkin
@@ -76,6 +76,8 @@ const checkIn = async (req, res, next) => {
         faceCheckStatus: faceCheck.faceCheckStatus,
         message:         'Check-in rejected.',
         reason:          faceCheck.reason,
+        faceSimilarity:  faceCheck.similarity ?? 0,
+        faceThreshold:   faceCheck.threshold ?? null,
       });
     }
 

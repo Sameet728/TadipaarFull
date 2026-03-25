@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // ✅ Your laptop IP (from ipconfig)
-const BASE_URL = 'https://tadipaarbk.onrender.com/api';
+const BASE_URL = 'http://192.168.1.34:5000/api';
 
 const API = axios.create({
   baseURL: BASE_URL,
