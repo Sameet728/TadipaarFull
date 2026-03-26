@@ -19,7 +19,7 @@ app.use(cors({
 }));
 
 // In Node.js
-const bcrypt = require('bcrypt')
+const bcrypt = require('bcryptjs')
 bcrypt.hash('admin123', 10).then(hash => {
   console.log(hash);
 });
