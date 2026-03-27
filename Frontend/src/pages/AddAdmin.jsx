@@ -52,16 +52,6 @@ export default function AddAdmin() {
     loadHierarchy()
   }, [])
 
-  const uniqueZones = useMemo(
-    () =>
-      Array.from(
-        new Map(
-          (zones || []).map((z) => [String(z.zone_id ?? z.id), z])
-        ).values()
-      ),
-    [zones]
-  )
-
   const acpOptions = useMemo(
     () =>
       dedupeById(
@@ -214,8 +204,8 @@ export default function AddAdmin() {
             disabled={metaLoading}
           >
             <option value="">Select Zone</option>
-            {uniqueZones.map((z) => (
-              <option key={String(z.zone_id ?? z.id)} value={z.zone_id ?? z.id}>{z.name}</option>
+            {zones.map((z) => (
+              <option key={z.id} value={z.id}>{z.name}</option>
             ))}
           </select>
 
