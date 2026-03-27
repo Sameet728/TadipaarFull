@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 // Change this to your backend IP / domain
-const BASE_URL = 'https://tadipaarbk.onrender.com/api'
+const BASE_URL = 'http://localhost:5000/api'
 
 const adminAPI = axios.create({
   baseURL: BASE_URL,

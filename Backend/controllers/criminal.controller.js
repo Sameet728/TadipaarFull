@@ -218,6 +218,8 @@ const register = async (req, res, next) => {
 // GET /api/criminal/meta/zones-stations  (public — for registration dropdowns)
 const getZonesAndStations = async (req, res, next) => {
   try {
+    const normalizeName = (value) => String(value || '').trim().toLowerCase();
+
     const zones = await query('SELECT id, name FROM zones ORDER BY name');
 
     const acpAreas = await query(
@@ -228,11 +230,50 @@ const getZonesAndStations = async (req, res, next) => {
       'SELECT id, acp_area_id, zone_id, name FROM police_stations ORDER BY acp_area_id, name'
     );
 
+    // Canonicalize duplicates so dropdowns always receive one logical option per entity.
+    const zoneMap = new Map();
+    const zoneIdToCanonical = new Map();
+    for (const z of zones.rows || []) {
+      if (!z || z.id === null || z.id === undefined) continue;
+      const key = normalizeName(z.name);
+      if (!zoneMap.has(key)) zoneMap.set(key, { id: z.id, name: z.name });
+      zoneIdToCanonical.set(z.id, zoneMap.get(key).id);
+    }
+    const uniqueZones = [...zoneMap.values()];
+
+    const acpMap = new Map();
+    const acpIdToCanonical = new Map();
+    for (const a of acpAreas.rows || []) {
+      if (!a || a.id === null || a.id === undefined) continue;
+      const canonicalZoneId = zoneIdToCanonical.get(a.zone_id) ?? a.zone_id;
+      const key = `${canonicalZoneId}::${normalizeName(a.name)}`;
+      if (!acpMap.has(key)) acpMap.set(key, { id: a.id, zone_id: canonicalZoneId, name: a.name });
+      acpIdToCanonical.set(a.id, acpMap.get(key).id);
+    }
+    const uniqueAcpAreas = [...acpMap.values()];
+
+    const stationMap = new Map();
+    for (const ps of stations.rows || []) {
+      if (!ps || ps.id === null || ps.id === undefined) continue;
+      const canonicalAcpId = acpIdToCanonical.get(ps.acp_area_id) ?? ps.acp_area_id;
+      const canonicalZoneId = zoneIdToCanonical.get(ps.zone_id) ?? ps.zone_id;
+      const key = `${canonicalAcpId}::${normalizeName(ps.name)}`;
+      if (!stationMap.has(key)) {
+        stationMap.set(key, {
+          id: ps.id,
+          acp_area_id: canonicalAcpId,
+          zone_id: canonicalZoneId,
+          name: ps.name,
+        });
+      }
+    }
+    const uniqueStations = [...stationMap.values()];
+
     return res.status(200).json({
       success: true,
-      zones:          zones.rows,
-      acpAreas:       acpAreas.rows,
-      policeStations: stations.rows,
+      zones:          uniqueZones,
+      acpAreas:       uniqueAcpAreas,
+      policeStations: uniqueStations,
     });
   } catch (err) {
     next(err);

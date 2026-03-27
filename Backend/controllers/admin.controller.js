@@ -1,27 +1,161 @@
 const bcrypt = require('bcrypt');
 const { query } = require('../config/db');
 
+const toInt = (value) => {
+  if (value === undefined || value === null || value === '') return null;
+  const parsed = parseInt(value, 10);
+  return Number.isNaN(parsed) ? null : parsed;
+};
+
+const getScopedParams = (req, params = {}) => {
+  const scoped = { ...params };
+  const role = String(req?.user?.role || '').toUpperCase();
+
+  if (role === 'ACP') {
+    if (req.user?.acp_area_id) {
+      scoped.acpAreaId = String(req.user.acp_area_id);
+      if (req.user?.zone_id) scoped.zoneId = String(req.user.zone_id);
+    } else {
+      scoped.acpAreaId = '-1';
+    }
+  }
+
+  if (role === 'PS') {
+    if (req.user?.police_station_id) {
+      scoped.policeStationId = String(req.user.police_station_id);
+      if (req.user?.acp_area_id) scoped.acpAreaId = String(req.user.acp_area_id);
+      if (req.user?.zone_id) scoped.zoneId = String(req.user.zone_id);
+    } else {
+      scoped.policeStationId = '-1';
+    }
+  }
+
+  if (role === 'DCP' && req.user?.zone_id) {
+    scoped.zoneId = String(req.user.zone_id);
+  }
+
+  return scoped;
+};
+
+const resolveHierarchyIds = async ({ zoneId, acpAreaId, policeStationId }) => {
+  const ids = {
+    zoneId: toInt(zoneId),
+    acpAreaId: toInt(acpAreaId),
+    policeStationId: toInt(policeStationId),
+  };
+
+  let zone = null;
+  let acp = null;
+  let station = null;
+
+  if (ids.zoneId) {
+    const zoneRes = await query('SELECT id, name FROM zones WHERE id = $1', [ids.zoneId]);
+    if (zoneRes.rows.length === 0) return { error: 'Invalid zone_id. Zone not found.' };
+    zone = zoneRes.rows[0];
+  }
+
+  if (ids.acpAreaId) {
+    const acpRes = await query('SELECT id, zone_id, name FROM acp_areas WHERE id = $1', [ids.acpAreaId]);
+    if (acpRes.rows.length === 0) return { error: 'Invalid acp_area_id. ACP area not found.' };
+    acp = acpRes.rows[0];
+
+    if (zone && acp.zone_id !== zone.id) {
+      return { error: 'acp_area_id does not belong to the selected zone_id.' };
+    }
+  }
+
+  if (ids.policeStationId) {
+    const stationRes = await query(
+      'SELECT id, zone_id, acp_area_id, name FROM police_stations WHERE id = $1',
+      [ids.policeStationId]
+    );
+    if (stationRes.rows.length === 0) return { error: 'Invalid police_station_id. Police station not found.' };
+    station = stationRes.rows[0];
+
+    if (acp && station.acp_area_id !== acp.id) {
+      return { error: 'police_station_id does not belong to the selected acp_area_id.' };
+    }
+    if (zone && station.zone_id !== zone.id) {
+      return { error: 'police_station_id does not belong to the selected zone_id.' };
+    }
+  }
+
+  return {
+    ids,
+    zone,
+    acp,
+    station,
+  };
+};
+
 // ─────────────────────────────────────────────────────────
 // GET /api/admin/hierarchy
 // Full zone → ACP → Police Station tree
 // ─────────────────────────────────────────────────────────
 const getHierarchy = async (req, res, next) => {
   try {
-    const zones    = await query('SELECT id, name FROM zones ORDER BY name');
-    const acpAreas = await query('SELECT id, zone_id, name FROM acp_areas ORDER BY zone_id, name');
-    const stations = await query('SELECT id, acp_area_id, zone_id, name FROM police_stations ORDER BY acp_area_id, name');
+    const normalizeName = (value) => String(value || '').trim().toLowerCase();
 
-    const tree = zones.rows.map(z => ({
+    const zonesRes = await query('SELECT id, name FROM zones ORDER BY id');
+    const acpAreasRes = await query('SELECT id, zone_id, name FROM acp_areas ORDER BY id');
+    const stationsRes = await query('SELECT id, acp_area_id, zone_id, name FROM police_stations ORDER BY id');
+
+    // Canonicalize duplicate rows by logical names so dropdown payloads stay unique.
+    const zoneMap = new Map();
+    const zoneIdToCanonical = new Map();
+    for (const z of zonesRes.rows || []) {
+      if (!z || z.id === null || z.id === undefined) continue;
+      const key = normalizeName(z.name);
+      if (!zoneMap.has(key)) zoneMap.set(key, { id: z.id, name: z.name });
+      zoneIdToCanonical.set(z.id, zoneMap.get(key).id);
+    }
+    const zones = [...zoneMap.values()];
+
+    const acpMap = new Map();
+    const acpIdToCanonical = new Map();
+    for (const a of acpAreasRes.rows || []) {
+      if (!a || a.id === null || a.id === undefined) continue;
+      const canonicalZoneId = zoneIdToCanonical.get(a.zone_id) ?? a.zone_id;
+      const key = `${canonicalZoneId}::${normalizeName(a.name)}`;
+      if (!acpMap.has(key)) acpMap.set(key, { id: a.id, zone_id: canonicalZoneId, name: a.name });
+      acpIdToCanonical.set(a.id, acpMap.get(key).id);
+    }
+    const acpAreas = [...acpMap.values()];
+
+    const stationMap = new Map();
+    for (const ps of stationsRes.rows || []) {
+      if (!ps || ps.id === null || ps.id === undefined) continue;
+      const canonicalAcpId = acpIdToCanonical.get(ps.acp_area_id) ?? ps.acp_area_id;
+      const canonicalZoneId = zoneIdToCanonical.get(ps.zone_id) ?? ps.zone_id;
+      const key = `${canonicalAcpId}::${normalizeName(ps.name)}`;
+      if (!stationMap.has(key)) {
+        stationMap.set(key, {
+          id: ps.id,
+          acp_area_id: canonicalAcpId,
+          zone_id: canonicalZoneId,
+          name: ps.name,
+        });
+      }
+    }
+    const stations = [...stationMap.values()];
+
+    const tree = zones.map(z => ({
       ...z,
-      acpAreas: acpAreas.rows
+      acpAreas: acpAreas
         .filter(a => a.zone_id === z.id)
         .map(a => ({
           ...a,
-          policeStations: stations.rows.filter(ps => ps.acp_area_id === a.id),
+          policeStations: stations.filter(ps => ps.acp_area_id === a.id),
         })),
     }));
 
-    return res.status(200).json({ success: true, hierarchy: tree });
+    return res.status(200).json({
+      success: true,
+      hierarchy: tree,
+      zones,
+      acp_areas: acpAreas,
+      police_stations: stations,
+    });
   } catch (err) { next(err); }
 };
 
@@ -52,7 +186,8 @@ const getCriminals = async (req, res, next) => {
     const limit = Math.min(100, parseInt(req.query.limit || '30'));
     const offset = (page - 1) * limit;
 
-    const { where, values, nextIdx } = buildCriminalFilter(req.query);
+    const scopedQuery = getScopedParams(req, req.query);
+    const { where, values, nextIdx } = buildCriminalFilter(scopedQuery);
 
     const dataValues = [...values, limit, offset];
 
@@ -157,6 +292,26 @@ const getCriminals = async (req, res, next) => {
 const getCriminalById = async (req, res, next) => {
   try {
     const { id } = req.params;
+    const scoped = getScopedParams(req, {});
+
+    const conditions = ['c.id = $1'];
+    const values = [id];
+    let idx = 2;
+
+    if (scoped.zoneId) {
+      conditions.push(`c.zone_id = $${idx++}`);
+      values.push(parseInt(scoped.zoneId, 10));
+    }
+    if (scoped.acpAreaId) {
+      conditions.push(`c.acp_area_id = $${idx++}`);
+      values.push(parseInt(scoped.acpAreaId, 10));
+    }
+    if (scoped.policeStationId) {
+      conditions.push(`c.police_station_id = $${idx++}`);
+      values.push(parseInt(scoped.policeStationId, 10));
+    }
+
+    const where = `WHERE ${conditions.join(' AND ')}`;
 
     const result = await query(
       `SELECT
@@ -174,8 +329,8 @@ const getCriminalById = async (req, res, next) => {
        LEFT JOIN police_stations ps ON ps.id = c.police_station_id
        LEFT JOIN acp_areas        aa ON aa.id = c.acp_area_id
        LEFT JOIN zones            z  ON z.id  = c.zone_id
-       WHERE c.id = $1`,
-      [id]
+       ${where}`,
+      values
     );
 
     if (result.rows.length === 0) {
@@ -236,6 +391,26 @@ const getCriminalById = async (req, res, next) => {
 // ─────────────────────────────────────────────────────────
 const getDashboard = async (req, res, next) => {
   try {
+    const scoped = getScopedParams(req, {});
+    const scopeConditions = ['c.is_active = TRUE'];
+    const scopeValues = [];
+    let scopeIdx = 1;
+
+    if (scoped.zoneId) {
+      scopeConditions.push(`c.zone_id = $${scopeIdx++}`);
+      scopeValues.push(parseInt(scoped.zoneId, 10));
+    }
+    if (scoped.acpAreaId) {
+      scopeConditions.push(`c.acp_area_id = $${scopeIdx++}`);
+      scopeValues.push(parseInt(scoped.acpAreaId, 10));
+    }
+    if (scoped.policeStationId) {
+      scopeConditions.push(`c.police_station_id = $${scopeIdx++}`);
+      scopeValues.push(parseInt(scoped.policeStationId, 10));
+    }
+
+    const scopeWhere = `WHERE ${scopeConditions.join(' AND ')}`;
+
     // Overall counts
     const totals = await query(`
       SELECT
@@ -250,8 +425,8 @@ const getDashboard = async (req, res, next) => {
       FROM criminals c
       LEFT JOIN checkins ci
         ON ci.criminal_id = c.id AND ci.checked_in_at::date = CURRENT_DATE
-      WHERE c.is_active = TRUE
-    `);
+      ${scopeWhere}
+    `, scopeValues);
 
     // Zone-wise breakdown
     const zoneStats = await query(`
@@ -268,9 +443,10 @@ const getDashboard = async (req, res, next) => {
       LEFT JOIN checkins     ci_viol  ON ci_viol.criminal_id = c.id
                                      AND ci_viol.checked_in_at::date = CURRENT_DATE
                                      AND ci_viol.status = 'non_compliant'
+      ${scopeWhere}
       GROUP BY z.id, z.name
       ORDER BY z.name
-    `);
+    `, scopeValues);
 
     // ACP-wise breakdown
     const acpStats = await query(`
@@ -288,9 +464,10 @@ const getDashboard = async (req, res, next) => {
       LEFT JOIN checkins     ci_viol  ON ci_viol.criminal_id = c.id
                                      AND ci_viol.checked_in_at::date = CURRENT_DATE
                                      AND ci_viol.status = 'non_compliant'
+      ${scopeWhere}
       GROUP BY aa.id, aa.name, z.name
       ORDER BY z.name, aa.name
-    `);
+    `, scopeValues);
 
     // Police Station wise breakdown
     const psStats = await query(`
@@ -310,9 +487,10 @@ const getDashboard = async (req, res, next) => {
       LEFT JOIN checkins     ci_viol  ON ci_viol.criminal_id = c.id
                                      AND ci_viol.checked_in_at::date = CURRENT_DATE
                                      AND ci_viol.status = 'non_compliant'
+      ${scopeWhere}
       GROUP BY ps.id, ps.name, aa.name, z.name
       ORDER BY z.name, aa.name, ps.name
-    `);
+    `, scopeValues);
 
     return res.status(200).json({
       success: true,
@@ -329,7 +507,8 @@ const getDashboard = async (req, res, next) => {
 // ─────────────────────────────────────────────────────────
 const getViolations = async (req, res, next) => {
   try {
-    const { zoneId, acpAreaId, policeStationId, date } = req.query;
+    const scopedQuery = getScopedParams(req, req.query);
+    const { zoneId, acpAreaId, policeStationId, date } = scopedQuery;
     const page  = Math.max(1, parseInt(req.query.page  || '1'));
     const limit = Math.min(100, parseInt(req.query.limit || '30'));
     const offset = (page - 1) * limit;
@@ -394,7 +573,8 @@ const getViolations = async (req, res, next) => {
 // ─────────────────────────────────────────────────────────
 const getMissedCheckIns = async (req, res, next) => {
   try {
-    const { zoneId, acpAreaId, policeStationId } = req.query;
+    const scopedQuery = getScopedParams(req, req.query);
+    const { zoneId, acpAreaId, policeStationId } = scopedQuery;
     const page  = Math.max(1, parseInt(req.query.page  || '1'));
     const limit = Math.min(100, parseInt(req.query.limit || '30'));
     const offset = (page - 1) * limit;
@@ -489,7 +669,8 @@ const deleteRestrictedArea = async (req, res, next) => {
 // GET /api/admin/checkins  — all check-ins (existing)
 const getAllCheckIns = async (req, res, next) => {
   try {
-    const { status, criminalId, zoneId, acpAreaId, policeStationId } = req.query;
+    const scopedQuery = getScopedParams(req, req.query);
+    const { status, criminalId, zoneId, acpAreaId, policeStationId } = scopedQuery;
     const page  = Math.max(1, parseInt(req.query.page  || '1'));
     const limit = Math.min(100, parseInt(req.query.limit || '30'));
     const offset = (page - 1) * limit;
@@ -548,7 +729,7 @@ const addAdmin = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Only CP can create admin users.' });
     }
 
-    const { name, login_id, password, role } = req.body;
+    const { name, login_id, password, role, zone_id, acp_area_id, police_station_id } = req.body;
 
     if (!name || !login_id || !password || !role) {
       return res.status(400).json({
@@ -569,6 +750,45 @@ const addAdmin = async (req, res, next) => {
 
     if (normalizedRole === 'CP') {
       return res.status(400).json({ success: false, message: 'Creating CP role is not allowed.' });
+    }
+
+    const hierarchy = await resolveHierarchyIds({
+      zoneId: zone_id,
+      acpAreaId: acp_area_id,
+      policeStationId: police_station_id,
+    });
+
+    if (hierarchy.error) {
+      return res.status(400).json({ success: false, message: hierarchy.error });
+    }
+
+    const { ids } = hierarchy;
+
+    if (normalizedRole === 'DCP') {
+      if (!ids.zoneId) {
+        return res.status(400).json({
+          success: false,
+          message: 'DCP admin requires zone_id.',
+        });
+      }
+    }
+
+    if (normalizedRole === 'ACP') {
+      if (!ids.zoneId || !ids.acpAreaId) {
+        return res.status(400).json({
+          success: false,
+          message: 'ACP admin requires both zone_id and acp_area_id.',
+        });
+      }
+    }
+
+    if (normalizedRole === 'PS') {
+      if (!ids.zoneId || !ids.acpAreaId || !ids.policeStationId) {
+        return res.status(400).json({
+          success: false,
+          message: 'PS admin requires zone_id, acp_area_id and police_station_id.',
+        });
+      }
     }
 
     const loginId = String(login_id).trim();
@@ -603,11 +823,29 @@ const addAdmin = async (req, res, next) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    const insertColumns = ['name', loginColumn, 'password', 'role'];
+    const insertValues = [String(name).trim(), loginId, hashedPassword, normalizedRole];
+
+    if (ids.zoneId) {
+      insertColumns.push('zone_id');
+      insertValues.push(ids.zoneId);
+    }
+    if (ids.acpAreaId) {
+      insertColumns.push('acp_area_id');
+      insertValues.push(ids.acpAreaId);
+    }
+    if (ids.policeStationId) {
+      insertColumns.push('police_station_id');
+      insertValues.push(ids.policeStationId);
+    }
+
+    const placeholders = insertColumns.map((_, i) => `$${i + 1}`).join(', ');
+
     const created = await query(
-      `INSERT INTO admins (name, ${loginColumn}, password, role)
-       VALUES ($1, $2, $3, $4)
-       RETURNING id, name, ${loginColumn} AS login_id, role`,
-      [String(name).trim(), loginId, hashedPassword, normalizedRole]
+      `INSERT INTO admins (${insertColumns.join(', ')})
+       VALUES (${placeholders})
+       RETURNING id, name, ${loginColumn} AS login_id, role, zone_id, acp_area_id, police_station_id`,
+      insertValues
     );
 
     return res.status(201).json({

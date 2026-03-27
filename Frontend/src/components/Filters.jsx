@@ -1,8 +1,11 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { Filter, Download, X, RefreshCw } from 'lucide-react'
 import adminAPI from '../api/api'
 import { useAuth } from '../context/AuthContext'
 import { today, daysAgo } from '../utils/helpers'
+
+const dedupeById = (items = []) =>
+  Array.from(new Map(items.map((i) => [String(i.id), i])).values())
 
 export default function Filters({ onFilter, onDownload, loading }) {
   const { auth } = useAuth()
@@ -20,11 +23,42 @@ export default function Filters({ onFilter, onDownload, loading }) {
   })
 
   useEffect(() => {
-    adminAPI.get('/criminal/meta/zones-stations').then(r => setMeta(r.data)).catch(() => {})
+    adminAPI
+      .get('/criminal/meta/zones-stations')
+      .then((r) => {
+        const data = r.data || {}
+        setMeta({
+          zones: dedupeById(data.zones || []),
+          acpAreas: dedupeById(data.acp_areas || data.acpAreas || []),
+          policeStations: dedupeById(data.police_stations || data.policeStations || []),
+        })
+      })
+      .catch(() => {
+        setMeta({ zones: [], acpAreas: [], policeStations: [] })
+      })
   }, [])
 
-  const filteredACP = f.zoneId ? meta.acpAreas.filter(a => String(a.zone_id) === String(f.zoneId)) : meta.acpAreas
-  const filteredPS  = f.acpAreaId ? meta.policeStations.filter(p => String(p.acp_area_id) === String(f.acpAreaId)) : meta.policeStations
+  const zoneOptions = useMemo(() => dedupeById(meta.zones), [meta.zones])
+
+  const filteredACP = useMemo(
+    () =>
+      dedupeById(
+        f.zoneId
+          ? meta.acpAreas.filter((a) => String(a.zone_id) === String(f.zoneId))
+          : meta.acpAreas
+      ),
+    [f.zoneId, meta.acpAreas]
+  )
+
+  const filteredPS = useMemo(
+    () =>
+      dedupeById(
+        f.acpAreaId
+          ? meta.policeStations.filter((p) => String(p.acp_area_id) === String(f.acpAreaId))
+          : meta.policeStations
+      ),
+    [f.acpAreaId, meta.policeStations]
+  )
 
   const set = (k, v) => setF(prev => {
     const next = { ...prev, [k]: v }
@@ -82,7 +116,7 @@ export default function Filters({ onFilter, onDownload, loading }) {
         {(role === 'CP') && (
           <select value={f.zoneId} onChange={e => set('zoneId', e.target.value)} className={sel}>
             <option value="">All Zones</option>
-            {meta.zones.map(z => <option key={z.id} value={z.id}>{z.name}</option>)}
+            {zoneOptions.map(z => <option key={z.id} value={z.id}>{z.name}</option>)}
           </select>
         )}
         {/* ACP */}

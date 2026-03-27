@@ -4,6 +4,7 @@ const express      = require('express');
 const cors         = require('cors');
 
 const errorHandler = require('./middleware/errorHandler');
+const { initializePoliceHierarchy } = require('./config/bootstrapHierarchy');
 
 const criminalRoutes = require('./routes/criminal.routes');
 const tadipaarRoutes = require('./routes/tadipaar.routes');
@@ -60,15 +61,21 @@ app.use((req, res) => {
 
 app.use(errorHandler);
 
-app.listen(PORT,'0.0.0.0', () => {
-  console.log('');
-  console.log('==============================================');
-  console.log('  Tadipaar API running on port ' + PORT);
-  console.log('==============================================');
-  console.log('  Base   : http://localhost:' + PORT);
-  console.log('  Health : http://localhost:' + PORT + '/health');
-  console.log('  Login  : POST http://localhost:' + PORT + '/api/criminal/login');
-  console.log('');
-});
+const startServer = async () => {
+  await initializePoliceHierarchy();
+
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log('');
+    console.log('==============================================');
+    console.log('  Tadipaar API running on port ' + PORT);
+    console.log('==============================================');
+    console.log('  Base   : http://localhost:' + PORT);
+    console.log('  Health : http://localhost:' + PORT + '/health');
+    console.log('  Login  : POST http://localhost:' + PORT + '/api/criminal/login');
+    console.log('');
+  });
+};
+
+startServer();
 
 module.exports = app;

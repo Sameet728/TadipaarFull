@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { 
   Users, CheckCircle, XCircle, Clock, 
   AlertTriangle, TrendingUp, Shield, Activity, Database 
@@ -13,6 +13,9 @@ import { useJurisdiction } from '../hooks/useJurisdiction';
 import adminAPI from '../api/api';
 import { downloadCSV } from '../utils/csv';
 
+const dedupeById = (items = []) =>
+  Array.from(new Map(items.map((i) => [String(i.id), i])).values());
+
 export default function Dashboard() {
   const { auth } = useAuth();
   const role = auth?.role;
@@ -22,7 +25,19 @@ export default function Dashboard() {
   const [criminals, setCriminals] = useState([]);
   const [filters, setFilters] = useState({});
   const [loading, setLoading] = useState(true);
-  const [newAdmin, setNewAdmin] = useState({ name: '', login_id: '', password: '', role: 'DCP' });
+  const [newAdmin, setNewAdmin] = useState({
+    name: '',
+    login_id: '',
+    password: '',
+    role: 'DCP',
+    zone_id: '',
+    acp_area_id: '',
+    police_station_id: '',
+  });
+  const [zones, setZones] = useState([]);
+  const [acpAreas, setAcpAreas] = useState([]);
+  const [policeStations, setPoliceStations] = useState([]);
+  const hierarchyLoadedRef = useRef(false);
   const [adminCreateLoading, setAdminCreateLoading] = useState(false);
   const [adminCreateMsg, setAdminCreateMsg] = useState('');
   const [adminCreateErr, setAdminCreateErr] = useState('');
@@ -46,6 +61,46 @@ export default function Dashboard() {
   }, [JSON.stringify(jurisdiction)]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (role !== 'CP') return;
+    if (hierarchyLoadedRef.current) return;
+    hierarchyLoadedRef.current = true;
+    adminAPI.get('/admin/hierarchy')
+      .then((res) => {
+        const data = res.data || {};
+        setZones(dedupeById(data.zones || []));
+        setAcpAreas(dedupeById(data.acp_areas || []));
+        setPoliceStations(dedupeById(data.police_stations || []));
+      })
+      .catch(() => {
+        setZones([]);
+        setAcpAreas([]);
+        setPoliceStations([]);
+      });
+  }, [role]);
+
+  const zoneOptions = useMemo(() => dedupeById(zones), [zones]);
+
+  const acpOptions = useMemo(
+    () =>
+      dedupeById(
+        (acpAreas || []).filter(
+          (a) => String(a.zone_id ?? a.zoneId) === String(newAdmin.zone_id)
+        )
+      ),
+    [acpAreas, newAdmin.zone_id]
+  );
+
+  const psOptions = useMemo(
+    () =>
+      dedupeById(
+        (policeStations || []).filter(
+          (ps) => String(ps.acp_area_id ?? ps.acpAreaId) === String(newAdmin.acp_area_id)
+        )
+      ),
+    [policeStations, newAdmin.acp_area_id]
+  );
 
   const onFilter = (f) => { setFilters(f); load(f); };
 
@@ -104,12 +159,51 @@ export default function Dashboard() {
       return;
     }
 
+    if (!newAdmin.zone_id) {
+      setAdminCreateErr('Zone is required.');
+      return;
+    }
+
+    if (newAdmin.role === 'ACP' && !newAdmin.acp_area_id) {
+      setAdminCreateErr('ACP area is required for ACP role.');
+      return;
+    }
+
+    if (newAdmin.role === 'PS' && (!newAdmin.acp_area_id || !newAdmin.police_station_id)) {
+      setAdminCreateErr('ACP area and police station are required for PS role.');
+      return;
+    }
+
+    const payload = {
+      name: newAdmin.name,
+      login_id: newAdmin.login_id,
+      password: newAdmin.password,
+      role: newAdmin.role,
+      zone_id: parseInt(newAdmin.zone_id, 10),
+    };
+
+    if (newAdmin.role === 'ACP' || newAdmin.role === 'PS') {
+      payload.acp_area_id = parseInt(newAdmin.acp_area_id, 10);
+    }
+
+    if (newAdmin.role === 'PS') {
+      payload.police_station_id = parseInt(newAdmin.police_station_id, 10);
+    }
+
     try {
       setAdminCreateLoading(true);
-      const res = await adminAPI.post('/admin/add-admin', newAdmin);
+      const res = await adminAPI.post('/admin/add-admin', payload);
       if (res.data?.success) {
         setAdminCreateMsg('Admin created successfully.');
-        setNewAdmin({ name: '', login_id: '', password: '', role: 'DCP' });
+        setNewAdmin({
+          name: '',
+          login_id: '',
+          password: '',
+          role: 'DCP',
+          zone_id: '',
+          acp_area_id: '',
+          police_station_id: '',
+        });
       } else {
         setAdminCreateErr('Could not create admin user.');
       }
@@ -159,7 +253,7 @@ export default function Dashboard() {
             ADD ADMIN USER
           </h2>
 
-          <form onSubmit={handleAdminCreate} className="grid grid-cols-1 md:grid-cols-5 gap-3">
+          <form onSubmit={handleAdminCreate} className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-3">
             <input
               type="text"
               placeholder="Name"
@@ -183,13 +277,57 @@ export default function Dashboard() {
             />
             <select
               value={newAdmin.role}
-              onChange={(e) => setNewAdmin((p) => ({ ...p, role: e.target.value }))}
+              onChange={(e) => setNewAdmin((p) => ({
+                ...p,
+                role: e.target.value,
+                zone_id: '',
+                acp_area_id: '',
+                police_station_id: '',
+              }))}
               className="border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-police-blue"
             >
               <option value="DCP">DCP</option>
               <option value="ACP">ACP</option>
               <option value="PS">PS</option>
             </select>
+
+            <select
+              value={newAdmin.zone_id}
+              onChange={(e) => setNewAdmin((p) => ({ ...p, zone_id: e.target.value, acp_area_id: '', police_station_id: '' }))}
+              className="border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-police-blue"
+            >
+              <option value="">Select Zone</option>
+              {zoneOptions.map((z) => (
+                <option key={z.id} value={z.id}>{z.name}</option>
+              ))}
+            </select>
+
+            {(newAdmin.role === 'ACP' || newAdmin.role === 'PS') && (
+              <select
+                value={newAdmin.acp_area_id}
+                onChange={(e) => setNewAdmin((p) => ({ ...p, acp_area_id: e.target.value, police_station_id: '' }))}
+                className="border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-police-blue"
+              >
+                <option value="">Select ACP Area</option>
+                {acpOptions.map((a) => (
+                  <option key={a.id} value={a.id}>{a.name}</option>
+                ))}
+              </select>
+            )}
+
+            {newAdmin.role === 'PS' && (
+              <select
+                value={newAdmin.police_station_id}
+                onChange={(e) => setNewAdmin((p) => ({ ...p, police_station_id: e.target.value }))}
+                className="border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-police-blue"
+              >
+                <option value="">Select Police Station</option>
+                {psOptions.map((ps) => (
+                  <option key={ps.id} value={ps.id}>{ps.name}</option>
+                ))}
+              </select>
+            )}
+
             <button
               type="submit"
               disabled={adminCreateLoading}
