@@ -20,7 +20,6 @@ export default function AddAdmin() {
   const [zones, setZones] = useState([])
   const [acpAreas, setAcpAreas] = useState([])
   const [policeStations, setPoliceStations] = useState([])
-  const hierarchyLoadedRef = useRef(false)
   const [metaLoading, setMetaLoading] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -30,9 +29,6 @@ export default function AddAdmin() {
   if (auth.role !== 'CP') return <Navigate to="/dashboard" replace />
 
   useEffect(() => {
-    if (hierarchyLoadedRef.current) return
-    hierarchyLoadedRef.current = true
-
     const loadHierarchy = async () => {
       try {
         setMetaLoading(true)
@@ -49,8 +45,10 @@ export default function AddAdmin() {
         setMetaLoading(false)
       }
     }
-    loadHierarchy()
-  }, [])
+    if (auth.role === 'CP') {
+      loadHierarchy()
+    }
+  }, [auth])
 
   const acpOptions = useMemo(
     () =>
