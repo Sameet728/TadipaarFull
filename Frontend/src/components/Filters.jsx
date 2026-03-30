@@ -1,93 +1,81 @@
-import React, { useState, useEffect, useMemo } from 'react'
-import { Filter, Download, X, RefreshCw } from 'lucide-react'
-import adminAPI from '../api/api'
+import React, { useState, useMemo } from 'react'
+import { Filter, Download, RefreshCw } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { today, daysAgo } from '../utils/helpers'
 
-const dedupeById = (items = []) =>
-  Array.from(new Map(items.map((i) => [String(i.id), i])).values())
-
-export default function Filters({ onFilter, onDownload, loading }) {
+export default function Filters({ onFilter, onDownload, loading, criminals = [] }) {
   const { auth } = useAuth()
-  const role = auth?.role
+  const role = String(auth?.role || '').toUpperCase()
 
-  const [meta, setMeta] = useState({ zones: [], acpAreas: [], policeStations: [] })
   const [f, setF] = useState({
-    zoneId: auth?.zoneId || '',
-    acpAreaId: auth?.acpAreaId || '',
-    policeStationId: auth?.policeStationId || '',
+    zone: '',
+    acpArea: '',
+    policeStation: '',
     section: '',
     status: '',
     dateFrom: daysAgo(30),
     dateTo: today(),
   })
 
-  useEffect(() => {
-    adminAPI
-      .get('/criminal/meta/zones-stations')
-      .then((r) => {
-        const data = r.data || {}
-        setMeta({
-          zones: dedupeById(data.zones || []),
-          acpAreas: dedupeById(data.acp_areas || data.acpAreas || []),
-          policeStations: dedupeById(data.police_stations || data.policeStations || []),
-        })
-      })
-      .catch(() => {
-        setMeta({ zones: [], acpAreas: [], policeStations: [] })
-      })
-  }, [])
+  // Derive unique zone names directly from criminals list
+  const zoneOptions = useMemo(() => {
+    const seen = new Set()
+    for (const c of criminals) {
+      if (c.zone) seen.add(c.zone)
+    }
+    return Array.from(seen).sort()
+  }, [criminals])
 
-  const zoneOptions = useMemo(() => dedupeById(meta.zones), [meta.zones])
+  // ACP options filtered by selected zone
+  const acpOptions = useMemo(() => {
+    const seen = new Set()
+    for (const c of criminals) {
+      if (!c.acpArea) continue
+      if (f.zone && c.zone !== f.zone) continue
+      seen.add(c.acpArea)
+    }
+    return Array.from(seen).sort()
+  }, [criminals, f.zone])
 
-  const filteredACP = useMemo(
-    () =>
-      dedupeById(
-        f.zoneId
-          ? meta.acpAreas.filter((a) => String(a.zone_id) === String(f.zoneId))
-          : meta.acpAreas
-      ),
-    [f.zoneId, meta.acpAreas]
-  )
-
-  const filteredPS = useMemo(
-    () =>
-      dedupeById(
-        f.acpAreaId
-          ? meta.policeStations.filter((p) => String(p.acp_area_id) === String(f.acpAreaId))
-          : meta.policeStations
-      ),
-    [f.acpAreaId, meta.policeStations]
-  )
+  // PS options filtered by selected ACP
+  const psOptions = useMemo(() => {
+    const seen = new Set()
+    for (const c of criminals) {
+      if (!c.policeStation) continue
+      if (f.zone && c.zone !== f.zone) continue
+      if (f.acpArea && c.acpArea !== f.acpArea) continue
+      seen.add(c.policeStation)
+    }
+    return Array.from(seen).sort()
+  }, [criminals, f.zone, f.acpArea])
 
   const set = (k, v) => setF(prev => {
     const next = { ...prev, [k]: v }
-    if (k === 'zoneId')    { next.acpAreaId = ''; next.policeStationId = '' }
-    if (k === 'acpAreaId') { next.policeStationId = '' }
+    if (k === 'zone')    { next.acpArea = ''; next.policeStation = '' }
+    if (k === 'acpArea') { next.policeStation = '' }
     return next
   })
 
   const apply = () => {
     const params = {}
-    if (f.zoneId)          params.zoneId          = f.zoneId
-    if (f.acpAreaId)       params.acpAreaId        = f.acpAreaId
-    if (f.policeStationId) params.policeStationId  = f.policeStationId
-    if (f.section)         params.section          = f.section
-    if (f.status)          params.status           = f.status
-    if (f.dateFrom)        params.dateFrom         = f.dateFrom
-    if (f.dateTo)          params.dateTo           = f.dateTo
+    if (f.zone)          params.zone          = f.zone
+    if (f.acpArea)       params.acpArea        = f.acpArea
+    if (f.policeStation) params.policeStation  = f.policeStation
+    if (f.section)       params.section        = f.section
+    if (f.status)        params.status         = f.status
+    if (f.dateFrom)      params.dateFrom       = f.dateFrom
+    if (f.dateTo)        params.dateTo         = f.dateTo
     onFilter(params)
   }
 
   const reset = () => {
-    const def = { zoneId: auth?.zoneId||'', acpAreaId: auth?.acpAreaId||'', policeStationId: auth?.policeStationId||'', section:'', status:'', dateFrom:daysAgo(30), dateTo:today() }
-    setF(def)
-    const params = {}
-    if (auth?.zoneId)          params.zoneId         = auth.zoneId
-    if (auth?.acpAreaId)       params.acpAreaId       = auth.acpAreaId
-    if (auth?.policeStationId) params.policeStationId = auth.policeStationId
-    onFilter(params)
+    setF({ zone:'', acpArea:'', policeStation:'', section:'', status:'', dateFrom:daysAgo(30), dateTo:today() })
+    onFilter({})
   }
+
+  const showZone = role === 'CP'
+  const showACP  = role === 'CP' || role === 'DCP'
+  const showPS   = role === 'CP' || role === 'DCP' || role === 'ACP'
 
   const sel = "border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white"
 
@@ -96,12 +84,13 @@ export default function Filters({ onFilter, onDownload, loading }) {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2 text-gray-700 font-semibold text-sm">
           <Filter size={16} /> Filters
+          {loading && <span className="text-xs text-gray-400 ml-1">(loading…)</span>}
         </div>
         <div className="flex gap-2">
           <button onClick={reset} className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 px-3 py-1.5 rounded-lg border hover:bg-gray-50">
             <RefreshCw size={13}/> Reset
           </button>
-          <button onClick={apply} className="flex items-center gap-1 text-xs bg-police-600 text-white px-3 py-1.5 rounded-lg hover:bg-police-700">
+          <button onClick={apply} disabled={loading} className="flex items-center gap-1 text-xs bg-police-600 text-white px-3 py-1.5 rounded-lg hover:bg-police-700 disabled:opacity-60">
             <Filter size={13}/> Apply
           </button>
           {onDownload && (
@@ -111,51 +100,53 @@ export default function Filters({ onFilter, onDownload, loading }) {
           )}
         </div>
       </div>
+
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-2">
-        {/* Zone — hide if DCP/ACP/PS already fixed */}
-        {(role === 'CP') && (
-          <select value={f.zoneId} onChange={e => set('zoneId', e.target.value)} className={sel}>
+
+        {showZone && (
+          <select value={f.zone} onChange={e => set('zone', e.target.value)} className={sel}>
             <option value="">All Zones</option>
-            {zoneOptions.map(z => <option key={z.id} value={z.id}>{z.name}</option>)}
+            {zoneOptions.map(z => <option key={z} value={z}>{z}</option>)}
           </select>
         )}
-        {/* ACP */}
-        {(role === 'CP' || role === 'DCP') && (
-          <select value={f.acpAreaId} onChange={e => set('acpAreaId', e.target.value)} className={sel}>
+
+        {showACP && (
+          <select value={f.acpArea} onChange={e => set('acpArea', e.target.value)} className={sel}>
             <option value="">All ACP Areas</option>
-            {filteredACP.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
+            {acpOptions.map(a => <option key={a} value={a}>{a}</option>)}
           </select>
         )}
-        {/* Police Station */}
-        {role !== 'PS' && (
-          <select value={f.policeStationId} onChange={e => set('policeStationId', e.target.value)} className={sel}>
+
+        {showPS && (
+          <select value={f.policeStation} onChange={e => set('policeStation', e.target.value)} className={sel}>
             <option value="">All Stations</option>
-            {filteredPS.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            {psOptions.map(p => <option key={p} value={p}>{p}</option>)}
           </select>
         )}
-        {/* Section */}
+
         <select value={f.section} onChange={e => set('section', e.target.value)} className={sel}>
           <option value="">All Sections</option>
           <option value="55">Section 55</option>
           <option value="56">Section 56</option>
           <option value="57">Section 57</option>
         </select>
-        {/* Status */}
+
         <select value={f.status} onChange={e => set('status', e.target.value)} className={sel}>
           <option value="">All Status</option>
           <option value="compliant">Compliant</option>
           <option value="non_compliant">Non Compliant</option>
         </select>
-        {/* Date From */}
+
         <div>
           <label className="text-xs text-gray-400 block mb-0.5">From</label>
           <input type="date" value={f.dateFrom} onChange={e => set('dateFrom', e.target.value)} className={sel + ' w-full'} />
         </div>
-        {/* Date To */}
+
         <div>
           <label className="text-xs text-gray-400 block mb-0.5">To</label>
           <input type="date" value={f.dateTo} onChange={e => set('dateTo', e.target.value)} className={sel + ' w-full'} />
         </div>
+
       </div>
     </div>
   )

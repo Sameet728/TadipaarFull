@@ -1,7 +1,7 @@
 import axios from 'axios'
 
-// Change this to your backend IP / domain
-const BASE_URL ='https://tadipaarbk-uxmc.onrender.com/api';
+// Local-first for development, override with VITE_API_BASE_URL in production/deploy.
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api'
 
 const adminAPI = axios.create({
   baseURL: BASE_URL,

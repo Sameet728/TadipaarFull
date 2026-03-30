@@ -10,11 +10,12 @@ import { downloadCSV, criminalsToCSV } from '../utils/csv';
 export default function CriminalsList() {
   const jurisdiction = useJurisdiction();
   const { auth } = useAuth();
-  const [data, setData]     = useState([]);
-  const [loading, setLoad]  = useState(true);
-  const [page, setPage]     = useState(1);
-  const [total, setTotal]   = useState(0);
-  const [filters, setFilters] = useState({});
+  const [data, setData]         = useState([]);
+  const [allCriminals, setAllCriminals] = useState([]); // for filter options
+  const [loading, setLoad]      = useState(true);
+  const [page, setPage]         = useState(1);
+  const [total, setTotal]       = useState(0);
+  const [filters, setFilters]   = useState({});
   const LIMIT = 30;
 
   const load = useCallback(async (f = {}, pg = 1) => {
@@ -29,6 +30,13 @@ export default function CriminalsList() {
     } finally { 
       setLoad(false); 
     }
+  }, [JSON.stringify(jurisdiction)]);
+
+  // Load all criminals once for filter dropdown options
+  useEffect(() => {
+    adminAPI.get('/admin/criminals', { params: { ...jurisdiction, limit: 500 } })
+      .then(res => setAllCriminals(res.data.criminals || []))
+      .catch(() => {});
   }, [JSON.stringify(jurisdiction)]);
 
   useEffect(() => { load(); }, [load]);
@@ -72,7 +80,8 @@ export default function CriminalsList() {
         <Filters 
           onFilter={onFilter} 
           onDownload={handleDownload} 
-          loading={loading} 
+          loading={loading}
+          criminals={allCriminals}
         />
       </div>
 

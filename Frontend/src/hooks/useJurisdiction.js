@@ -3,7 +3,8 @@ import { useAuth } from '../context/AuthContext'
 export const useJurisdiction = () => {
   const { auth } = useAuth()
   if (!auth) return {}
-  const { role, zoneId, acpAreaId, policeStationId } = auth
+  const { zoneId, acpAreaId, policeStationId } = auth
+  const role = String(auth.role || '').toUpperCase()
   if (role === 'CP')  return {}
   if (role === 'DCP') return { zoneId }
   if (role === 'ACP') return { zoneId, acpAreaId }
@@ -14,7 +15,8 @@ export const useJurisdiction = () => {
 export const useRoleLabel = () => {
   const { auth } = useAuth()
   if (!auth) return ''
-  const { role, zoneName, acpName, psName } = auth
+  const { zoneName, acpName, psName } = auth
+  const role = String(auth.role || '').toUpperCase()
   if (role === 'CP')  return 'Commissioner of Police — Pimpri Chinchwad'
   if (role === 'DCP') return `DCP — ${zoneName || 'Zone'}`
   if (role === 'ACP') return `ACP — ${acpName || 'ACP Area'}`

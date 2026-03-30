@@ -14,6 +14,7 @@ export default function Violations() {
   const [total, setTotal] = useState(0);
   const [load, setLoad]   = useState(true);
   const [filters, setFilters] = useState({});
+  const [allCriminals, setAllCriminals] = useState([]);
 
   const fetchLogs = useCallback(async (f = {}) => {
     setLoad(true);
@@ -30,6 +31,12 @@ export default function Violations() {
   }, [JSON.stringify(jurisdiction)]);
 
   useEffect(() => { fetchLogs(); }, [fetchLogs]);
+
+  useEffect(() => {
+    adminAPI.get('/admin/criminals', { params: { ...jurisdiction, limit: 500 } })
+      .then(res => setAllCriminals(res.data.criminals || []))
+      .catch(() => {});
+  }, [JSON.stringify(jurisdiction)]);
 
   const onFilter = (f) => { setFilters(f); fetchLogs(f); };
   
@@ -52,7 +59,7 @@ export default function Violations() {
 
       {/* FILTER CONTROLS */}
       <div className="mb-8">
-        <Filters onFilter={onFilter} onDownload={onDownload} loading={load} />
+        <Filters onFilter={onFilter} onDownload={onDownload} loading={load} criminals={allCriminals} />
       </div>
 
       {/* DATA DISPLAY */}
@@ -101,7 +108,6 @@ export default function Violations() {
                 
                 {/* Left: Photos */}
                 <div className="flex gap-4 items-start">
-                  {/* Official Photo */}
                   <div className="flex flex-col items-center">
                     <span className="text-[10px] font-bold tracking-widest text-slate-400 mb-2">OFFICIAL ID</span>
                     {v.criminal_photo ? (
@@ -113,7 +119,6 @@ export default function Violations() {
                     )}
                   </div>
 
-                  {/* Verification Selfie */}
                   <div className="flex flex-col items-center">
                     <span className="text-[10px] font-bold tracking-widest text-red-600 mb-2">VERIFICATION LOG</span>
                     {v.selfie_url ? (
@@ -146,12 +151,8 @@ export default function Violations() {
                         <Crosshair size={12} className="mr-1.5" />
                         RECORDED COORDINATES
                       </p>
-                      <p className="text-xs font-bold text-police-navy">
-                        LAT: {parseFloat(v.latitude || 0).toFixed(5)}
-                      </p>
-                      <p className="text-xs font-bold text-police-navy mt-0.5">
-                        LNG: {parseFloat(v.longitude || 0).toFixed(5)}
-                      </p>
+                      <p className="text-xs font-bold text-police-navy">LAT: {parseFloat(v.latitude || 0).toFixed(5)}</p>
+                      <p className="text-xs font-bold text-police-navy mt-0.5">LNG: {parseFloat(v.longitude || 0).toFixed(5)}</p>
                     </div>
 
                     <a 

@@ -26,8 +26,30 @@ const Field = ({ label, required, fullWidth, children }) => (
 const INP =
   'w-full bg-slate-50 border border-slate-300 rounded px-4 py-2.5 text-sm font-semibold text-slate-800 focus:outline-none focus:border-[#1E3A8A] focus:ring-1 focus:ring-[#1E3A8A] transition-colors'
 
-const dedupeById = (items = []) =>
-  Array.from(new Map(items.map((i) => [String(i.id), i])).values())
+const normalizeOption = (item, type) => {
+  const rawId =
+    item?.id ??
+    (type === 'zone' ? item?.zone_id ?? item?.zoneId : null) ??
+    (type === 'acp' ? item?.acp_area_id ?? item?.acpAreaId : null) ??
+    (type === 'ps' ? item?.police_station_id ?? item?.policeStationId : null)
+  const rawName =
+    item?.name ??
+    (type === 'zone' ? item?.zone_name ?? item?.zoneName : null) ??
+    (type === 'acp' ? item?.acp_area_name ?? item?.acpAreaName : null) ??
+    (type === 'ps' ? item?.police_station_name ?? item?.policeStationName : null)
+  if (rawId === undefined || rawId === null || rawId === '') return null
+  return { ...item, id: String(rawId), name: String(rawName || `#${rawId}`) }
+}
+
+const dedupeById = (items = [], type = 'zone') =>
+  Array.from(
+    new Map(
+      (items || [])
+        .map((i) => normalizeOption(i, type))
+        .filter(Boolean)
+        .map((i) => [String(i.id), i])
+    ).values()
+  )
 
 export default function RegisterCriminal() {
   const navigate = useNavigate()
@@ -61,23 +83,23 @@ export default function RegisterCriminal() {
       .then((r) => {
         const data = r.data || {}
         setMeta({
-          zones: dedupeById(data.zones || []),
-          acpAreas: dedupeById(data.acp_areas || data.acpAreas || []),
-          policeStations: dedupeById(data.police_stations || data.policeStations || []),
+          zones: dedupeById(data.zones || [], 'zone'),
+          acpAreas: dedupeById(data.acp_areas || data.acpAreas || [], 'acp'),
+          policeStations: dedupeById(data.police_stations || data.policeStations || [], 'ps'),
         })
       })
       .catch(() => setMeta({ zones: [], acpAreas: [], policeStations: [] }))
   }, [])
 
-  const zoneOptions = useMemo(() => dedupeById(meta.zones || []), [meta.zones])
+  const zoneOptions = useMemo(() => dedupeById(meta.zones || [], 'zone'), [meta.zones])
 
   const filteredACP = useMemo(
     () =>
       dedupeById(
         zoneId
-          ? (meta.acpAreas || []).filter((a) => String(a.zone_id) === String(zoneId))
+          ? (meta.acpAreas || []).filter((a) => String(a.zone_id ?? a.zoneId) === String(zoneId))
           : meta.acpAreas || []
-      ),
+      , 'acp'),
     [zoneId, meta.acpAreas]
   )
 
@@ -86,10 +108,10 @@ export default function RegisterCriminal() {
       dedupeById(
         acpAreaId
           ? (meta.policeStations || []).filter(
-              (p) => String(p.acp_area_id) === String(acpAreaId)
+              (p) => String(p.acp_area_id ?? p.acpAreaId) === String(acpAreaId)
             )
           : meta.policeStations || []
-      ),
+      , 'ps'),
     [acpAreaId, meta.policeStations]
   )
 

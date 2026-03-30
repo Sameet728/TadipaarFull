@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { 
   Users, CheckCircle, XCircle, Clock, 
   AlertTriangle, TrendingUp, Shield, Activity, Database 
@@ -12,9 +12,7 @@ import { useAuth } from '../context/AuthContext';
 import { useJurisdiction } from '../hooks/useJurisdiction';
 import adminAPI from '../api/api';
 import { downloadCSV } from '../utils/csv';
-
-const dedupeById = (items = []) =>
-  Array.from(new Map(items.map((i) => [String(i.id), i])).values());
+import { dedupeById, parseHierarchyMeta } from '../utils/hierarchyMeta';
 
 export default function Dashboard() {
   const { auth } = useAuth();
@@ -37,7 +35,6 @@ export default function Dashboard() {
   const [zones, setZones] = useState([]);
   const [acpAreas, setAcpAreas] = useState([]);
   const [policeStations, setPoliceStations] = useState([]);
-  const hierarchyLoadedRef = useRef(false);
   const [adminCreateLoading, setAdminCreateLoading] = useState(false);
   const [adminCreateMsg, setAdminCreateMsg] = useState('');
   const [adminCreateErr, setAdminCreateErr] = useState('');
@@ -52,7 +49,15 @@ export default function Dashboard() {
         adminAPI.get('/admin/criminals', { params }),
       ]);
       setDash(dashRes.data);
-      setCriminals(crimRes.data.criminals || []);
+      
+      // FIX: Map API data to camelCase so Filters.js can read ACP and PS options
+      const mappedCriminals = (crimRes.data.criminals || []).map(c => ({
+        ...c,
+        acpArea: c.acp_area || c.acpArea,
+        policeStation: c.police_station || c.policeStation
+      }));
+      
+      setCriminals(mappedCriminals);
     } catch(e) { 
       console.error("DASHBOARD DATA ERROR:", e); 
     } finally { 
@@ -63,24 +68,33 @@ export default function Dashboard() {
   useEffect(() => { load(); }, [load]);
 
   useEffect(() => {
-    if (role !== 'CP') return;
-    if (hierarchyLoadedRef.current) return;
-    hierarchyLoadedRef.current = true;
-    adminAPI.get('/admin/hierarchy')
-      .then((res) => {
-        const data = res.data || {};
-        setZones(dedupeById(data.zones || []));
-        setAcpAreas(dedupeById(data.acp_areas || []));
-        setPoliceStations(dedupeById(data.police_stations || []));
-      })
-      .catch(() => {
+    const fetchMeta = async () => {
+      try {
+        const res = await adminAPI.get('/admin/hierarchy');
+        const parsed = parseHierarchyMeta(res.data || {});
+        if (parsed.zones?.length || parsed.acpAreas?.length || parsed.policeStations?.length) {
+          setZones(parsed.zones || []);
+          setAcpAreas(parsed.acpAreas || []);
+          setPoliceStations(parsed.policeStations || []);
+          return;
+        }
+      } catch (_) {}
+      try {
+        const res2 = await adminAPI.get('/criminal/meta/zones-stations');
+        const parsed2 = parseHierarchyMeta(res2.data || {});
+        setZones(parsed2.zones || []);
+        setAcpAreas(parsed2.acpAreas || []);
+        setPoliceStations(parsed2.policeStations || []);
+      } catch (_) {
         setZones([]);
         setAcpAreas([]);
         setPoliceStations([]);
-      });
-  }, [role]);
+      }
+    };
+    fetchMeta();
+  }, [auth?.token]);
 
-  const zoneOptions = useMemo(() => dedupeById(zones), [zones]);
+  const zoneOptions = useMemo(() => dedupeById(zones, 'zone'), [zones]);
 
   const acpOptions = useMemo(
     () =>
@@ -88,7 +102,7 @@ export default function Dashboard() {
         (acpAreas || []).filter(
           (a) => String(a.zone_id ?? a.zoneId) === String(newAdmin.zone_id)
         )
-      ),
+      , 'acp'),
     [acpAreas, newAdmin.zone_id]
   );
 
@@ -98,20 +112,33 @@ export default function Dashboard() {
         (policeStations || []).filter(
           (ps) => String(ps.acp_area_id ?? ps.acpAreaId) === String(newAdmin.acp_area_id)
         )
-      ),
+      , 'ps'),
     [policeStations, newAdmin.acp_area_id]
   );
 
   const onFilter = (f) => { setFilters(f); load(f); };
 
+  // Apply filters client-side on the loaded criminals list
+  const filteredCriminals = useMemo(() => {
+    return criminals.filter(c => {
+      if (filters.zone && c.zone !== filters.zone) return false
+      if (filters.acpArea && (c.acpArea || c.acp_area) !== filters.acpArea) return false
+      if (filters.policeStation && (c.policeStation || c.police_station) !== filters.policeStation) return false
+      if (filters.section && (c.externmentSection || c.externment_section) !== filters.section) return false
+      if (filters.status === 'compliant' && !(c.stats?.lastCheckin && c.stats?.nonCompliantCount === 0)) return false
+      if (filters.status === 'non_compliant' && (c.stats?.lastCheckin && c.stats?.nonCompliantCount === 0)) return false
+      return true
+    })
+  }, [criminals, filters])
+
   // Compute stats from criminals list (role-filtered)
-  const total      = criminals.length;
-  const compliant  = criminals.filter(c => c.stats?.lastCheckin && c.stats?.nonCompliantCount === 0).length;
-  const redZone    = criminals.filter(c => c.stats?.enteredRestrictedArea).length;
-  const notChecked = criminals.filter(c => !c.stats?.lastCheckin || c.stats?.missedCheckinDays > 0).length;
-  const sec55 = criminals.filter(c => (c.externmentSection || c.externment_section) === '55').length;
-  const sec56 = criminals.filter(c => (c.externmentSection || c.externment_section) === '56').length;
-  const sec57 = criminals.filter(c => (c.externmentSection || c.externment_section) === '57').length;
+  const total      = filteredCriminals.length;
+  const compliant  = filteredCriminals.filter(c => c.stats?.lastCheckin && c.stats?.nonCompliantCount === 0).length;
+  const redZone    = filteredCriminals.filter(c => c.stats?.enteredRestrictedArea).length;
+  const notChecked = filteredCriminals.filter(c => !c.stats?.lastCheckin || c.stats?.missedCheckinDays > 0).length;
+  const sec55 = filteredCriminals.filter(c => (c.externmentSection || c.externment_section) === '55').length;
+  const sec56 = filteredCriminals.filter(c => (c.externmentSection || c.externment_section) === '56').length;
+  const sec57 = filteredCriminals.filter(c => (c.externmentSection || c.externment_section) === '57').length;
 
   // Build trend data (mock 7-day from API data)
   const trendData = dash ? Array.from({length:7}, (_,i) => {
@@ -134,7 +161,7 @@ export default function Dashboard() {
   const breakdownLabel = role === 'CP' ? 'zone' : role === 'DCP' ? 'acp_area' : 'police_station';
 
   const handleDownload = () => {
-    downloadCSV(criminals.map(c => ({
+    downloadCSV(filteredCriminals.map(c => ({
       Name: c.name, 
       LoginID: c.loginId || c.login_id, 
       Section: c.externmentSection || '',
@@ -244,7 +271,12 @@ export default function Dashboard() {
       </div>
 
       <div className="mb-8">
-        <Filters onFilter={onFilter} onDownload={handleDownload} loading={loading} />
+        <Filters
+          onFilter={onFilter}
+          onDownload={handleDownload}
+          loading={loading}
+          criminals={criminals} // FIX: Corrected variable name from allcriminals
+        />
       </div>
 
       {role === 'CP' && (
@@ -350,7 +382,6 @@ export default function Dashboard() {
             <h2 className="text-xs font-black tracking-widest text-police-gold uppercase">LIVE SYSTEM SNAPSHOT (24H)</h2>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {/* Using StatCard but wrapping in a dark theme container conceptually */}
             <StatCard label="CITY TOTAL" value={dash.summary.total_criminals} color="blue" />
             <StatCard label="CHECKED IN TODAY" value={dash.summary.total_checkins_today} color="green" />
             <StatCard label="NOT CHECKED IN" value={dash.summary.not_checked_in_today} color="orange" />
