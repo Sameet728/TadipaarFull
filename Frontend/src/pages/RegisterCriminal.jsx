@@ -77,15 +77,36 @@ export default function RegisterCriminal() {
   const [error, setError] = useState('')
   const fileRef = useRef()
 
+  // Fetch numeric IDs directly from the zones-stations endpoint which has them
+  // Fall back to building name-based options from criminals list
   useEffect(() => {
-    adminAPI
-      .get('/criminal/meta/zones-stations')
+    // Try to get real numeric IDs from a single criminal's detail endpoint
+    // The /admin/criminals response includes policeStationId as numeric at field level
+    adminAPI.get('/admin/criminals', { params: { limit: 500 } })
       .then((r) => {
-        const data = r.data || {}
+        const criminals = r.data?.criminals || []
+        const zoneMap = new Map()
+        const acpMap  = new Map()
+        const psMap   = new Map()
+        for (const c of criminals) {
+          // Use numeric IDs if present, else fall back to name as key
+          const zId  = c.zoneId          ?? c.zone_id          ?? c.zone
+          const aId  = c.acpAreaId       ?? c.acp_area_id      ?? c.acpArea
+          const psId = c.policeStationId ?? c.police_station_id ?? c.policeStation
+
+          if (c.zone && zId != null && !zoneMap.has(String(zId)))
+            zoneMap.set(String(zId), { id: String(zId), name: c.zone })
+
+          if (c.acpArea && aId != null && !acpMap.has(String(aId)))
+            acpMap.set(String(aId), { id: String(aId), name: c.acpArea, zone_id: String(zId) })
+
+          if (c.policeStation && psId != null && !psMap.has(String(psId)))
+            psMap.set(String(psId), { id: String(psId), name: c.policeStation, acp_area_id: String(aId) })
+        }
         setMeta({
-          zones: dedupeById(data.zones || [], 'zone'),
-          acpAreas: dedupeById(data.acp_areas || data.acpAreas || [], 'acp'),
-          policeStations: dedupeById(data.police_stations || data.policeStations || [], 'ps'),
+          zones:          [...zoneMap.values()],
+          acpAreas:       [...acpMap.values()],
+          policeStations: [...psMap.values()],
         })
       })
       .catch(() => setMeta({ zones: [], acpAreas: [], policeStations: [] }))
@@ -144,6 +165,26 @@ export default function RegisterCriminal() {
       return
     }
 
+    // If policeStationId is a name (not numeric), look up the real ID
+    let resolvedPsId = policeStationId
+    if (isNaN(Number(policeStationId))) {
+      try {
+        const res = await adminAPI.get('/admin/criminals', { params: { limit: 500 } })
+        const match = (res.data?.criminals || []).find(
+          c => c.policeStation === policeStationId && (c.policeStationId || c.police_station_id)
+        )
+        const numericId = match?.policeStationId ?? match?.police_station_id
+        if (!numericId) {
+          setError('Could not resolve Police Station ID. Please contact support.')
+          return
+        }
+        resolvedPsId = String(numericId)
+      } catch {
+        setError('Failed to resolve Police Station. Please try again.')
+        return
+      }
+    }
+
     setLoading(true)
     setError('')
 
@@ -155,7 +196,7 @@ export default function RegisterCriminal() {
     if (email) fd.append('email', email)
     if (address) fd.append('address', address)
     if (caseNumber) fd.append('caseNumber', caseNumber)
-    if (policeStationId) fd.append('policeStationId', policeStationId)
+    fd.append('policeStationId', resolvedPsId)
     if (externmentSection) fd.append('externmentSection', externmentSection)
     if (periodFrom) fd.append('periodFrom', periodFrom)
     if (periodTill) fd.append('periodTill', periodTill)
@@ -212,11 +253,7 @@ export default function RegisterCriminal() {
         </h3>
         <div className="flex items-center gap-6">
           {preview ? (
-            <img
-              src={preview}
-              className="w-28 h-28 rounded object-cover border-2 border-slate-200 shadow-sm"
-              alt=""
-            />
+            <img src={preview} className="w-28 h-28 rounded object-cover border-2 border-slate-200 shadow-sm" alt="" />
           ) : (
             <div
               className="w-28 h-28 rounded bg-slate-50 border-2 border-dashed border-slate-300 flex flex-col items-center justify-center text-slate-400 cursor-pointer hover:bg-slate-100 transition-colors"
@@ -237,50 +274,22 @@ export default function RegisterCriminal() {
               JPEG / PNG - MAX 10 MB
             </p>
           </div>
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/jpeg,image/png"
-            className="hidden"
-            onChange={handlePhoto}
-          />
+          <input ref={fileRef} type="file" accept="image/jpeg,image/png" className="hidden" onChange={handlePhoto} />
         </div>
       </div>
 
       <Section title="System Authentication">
         <Field label="Subject Full Name" required>
-          <input
-            className={INP}
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Full legal name"
-          />
+          <input className={INP} value={name} onChange={(e) => setName(e.target.value)} placeholder="Full legal name" />
         </Field>
         <Field label="Official Login ID" required>
-          <input
-            className={INP}
-            value={loginId}
-            onChange={(e) => setLoginId(e.target.value)}
-            placeholder="e.g. EXT-001"
-            autoCapitalize="none"
-          />
+          <input className={INP} value={loginId} onChange={(e) => setLoginId(e.target.value)} placeholder="e.g. EXT-001" autoCapitalize="none" />
         </Field>
         <Field label="Secure Password" required>
-          <input
-            type="password"
-            className={INP}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Minimum 8 characters"
-          />
+          <input type="password" className={INP} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Minimum 8 characters" />
         </Field>
         <Field label="Case Number">
-          <input
-            className={INP}
-            value={caseNumber}
-            onChange={(e) => setCaseNumber(e.target.value)}
-            placeholder="CASE-YYYY-XXX"
-          />
+          <input className={INP} value={caseNumber} onChange={(e) => setCaseNumber(e.target.value)} placeholder="CASE-YYYY-XXX" />
         </Field>
       </Section>
 
@@ -289,39 +298,23 @@ export default function RegisterCriminal() {
           <select className={INP} value={zoneId} onChange={(e) => handleZone(e.target.value)}>
             <option value="">Select Zone</option>
             {zoneOptions.map((z) => (
-              <option key={z.id} value={z.id}>
-                {z.name}
-              </option>
+              <option key={z.id} value={z.id}>{z.name}</option>
             ))}
           </select>
         </Field>
         <Field label="ACP Division" required>
-          <select
-            className={INP}
-            value={acpAreaId}
-            onChange={(e) => handleAcp(e.target.value)}
-            disabled={!zoneId}
-          >
+          <select className={INP} value={acpAreaId} onChange={(e) => handleAcp(e.target.value)} disabled={!zoneId}>
             <option value="">Select ACP Division</option>
             {filteredACP.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
+              <option key={a.id} value={a.id}>{a.name}</option>
             ))}
           </select>
         </Field>
         <Field label="Police Station" required>
-          <select
-            className={INP}
-            value={policeStationId}
-            onChange={(e) => setPoliceStationId(e.target.value)}
-            disabled={!acpAreaId}
-          >
+          <select className={INP} value={policeStationId} onChange={(e) => setPoliceStationId(e.target.value)} disabled={!acpAreaId}>
             <option value="">Select Station</option>
             {filteredPS.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
+              <option key={p.id} value={p.id}>{p.name}</option>
             ))}
           </select>
         </Field>
@@ -329,11 +322,7 @@ export default function RegisterCriminal() {
 
       <Section title="Legal Externment Parameters">
         <Field label="Externment Section" required>
-          <select
-            className={INP}
-            value={externmentSection}
-            onChange={(e) => setExternmentSection(e.target.value)}
-          >
+          <select className={INP} value={externmentSection} onChange={(e) => setExternmentSection(e.target.value)}>
             <option value="">Select Legal Section</option>
             <option value="55">Section 55</option>
             <option value="56">Section 56</option>
@@ -341,73 +330,33 @@ export default function RegisterCriminal() {
           </select>
         </Field>
         <Field label="Enforcement Start Date">
-          <input
-            type="date"
-            className={INP}
-            value={periodFrom}
-            onChange={(e) => setPeriodFrom(e.target.value)}
-          />
+          <input type="date" className={INP} value={periodFrom} onChange={(e) => setPeriodFrom(e.target.value)} />
         </Field>
         <Field label="Enforcement End Date">
-          <input
-            type="date"
-            className={INP}
-            value={periodTill}
-            onChange={(e) => setPeriodTill(e.target.value)}
-          />
+          <input type="date" className={INP} value={periodTill} onChange={(e) => setPeriodTill(e.target.value)} />
         </Field>
         <Field label="Mandated Residence During Externment">
-          <input
-            className={INP}
-            value={residenceAddress}
-            onChange={(e) => setResidenceAddress(e.target.value)}
-            placeholder="Temporary residence address"
-          />
+          <input className={INP} value={residenceAddress} onChange={(e) => setResidenceAddress(e.target.value)} placeholder="Temporary residence address" />
         </Field>
       </Section>
 
       <Section title="Contact Information">
         <Field label="Phone Number">
-          <input
-            type="tel"
-            className={INP}
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="Enter phone number"
-          />
+          <input type="tel" className={INP} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Enter phone number" />
         </Field>
         <Field label="Email Address">
-          <input
-            type="email"
-            className={INP}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Enter email address"
-          />
+          <input type="email" className={INP} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter email address" />
         </Field>
         <Field label="Permanent Registered Address" fullWidth>
-          <textarea
-            className={INP}
-            rows={3}
-            value={address}
-            onChange={(e) => setAddress(e.target.value)}
-            placeholder="Permanent home address"
-          />
+          <textarea className={INP} rows={3} value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Permanent home address" />
         </Field>
       </Section>
 
       <div className="flex gap-4 justify-end mt-8 border-t border-slate-200 pt-6">
-        <button
-          onClick={() => navigate(-1)}
-          className="px-8 py-3 bg-white border border-slate-300 text-slate-600 rounded text-[10px] font-black tracking-widest hover:bg-slate-50 transition-colors"
-        >
+        <button onClick={() => navigate(-1)} className="px-8 py-3 bg-white border border-slate-300 text-slate-600 rounded text-[10px] font-black tracking-widest hover:bg-slate-50 transition-colors">
           CANCEL
         </button>
-        <button
-          onClick={handleSubmit}
-          disabled={loading}
-          className="px-8 py-3 bg-[#1E3A8A] text-white rounded text-[10px] font-black tracking-widest hover:bg-[#163172] transition-colors shadow-md disabled:opacity-60 disabled:cursor-not-allowed"
-        >
+        <button onClick={handleSubmit} disabled={loading} className="px-8 py-3 bg-[#1E3A8A] text-white rounded text-[10px] font-black tracking-widest hover:bg-[#163172] transition-colors shadow-md disabled:opacity-60 disabled:cursor-not-allowed">
           {loading ? 'PROCESSING...' : 'AUTHORIZE & REGISTER'}
         </button>
       </div>

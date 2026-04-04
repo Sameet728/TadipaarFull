@@ -15,7 +15,6 @@ export default function AddAdmin() {
     police_station_id: '',
   })
   
-  // States for the hierarchy options
   const [meta, setMeta] = useState({ zones: [], acpAreas: [], policeStations: [] })
   const [metaLoading, setMetaLoading] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -29,7 +28,6 @@ export default function AddAdmin() {
     const loadHierarchy = async () => {
       try {
         setMetaLoading(true)
-        // Fetching from criminals list to derive hierarchy exactly like Filters.jsx
         const res = await adminAPI.get('/admin/criminals', { params: { limit: 1000 } })
         const criminals = res.data?.criminals || []
 
@@ -38,21 +36,20 @@ export default function AddAdmin() {
         const psMap = new Map()
 
         criminals.forEach(c => {
-          // Extract using the same keys as Filters.jsx
-          const zName = c.zone
-          const aName = c.acpArea || c.acp_area
-          const pName = c.policeStation || c.police_station
-          
-          // We use the names as IDs for the dropdown logic to match Filters.jsx
-          if (zName) {
-            zoneMap.set(zName, { id: zName, name: zName })
-          }
-          if (zName && aName) {
-            acpMap.set(aName, { id: aName, name: aName, zone_id: zName })
-          }
-          if (aName && pName) {
-            psMap.set(pName, { id: pName, name: pName, acp_area_id: aName })
-          }
+          const zName  = c.zone
+          const aName  = c.acpArea  || c.acp_area
+          const pName  = c.policeStation || c.police_station
+          // Use numeric IDs from backend (available after backend fix)
+          const zId    = c.zoneId   ?? c.zone_id   ?? zName
+          const aId    = c.acpAreaId ?? c.acp_area_id ?? aName
+          const psId   = c.policeStationId ?? c.police_station_id ?? pName
+
+          if (zName && !zoneMap.has(String(zId)))
+            zoneMap.set(String(zId), { id: String(zId), name: zName })
+          if (zName && aName && !acpMap.has(String(aId)))
+            acpMap.set(String(aId), { id: String(aId), name: aName, zone_id: String(zId) })
+          if (aName && pName && !psMap.has(String(psId)))
+            psMap.set(String(psId), { id: String(psId), name: pName, acp_area_id: String(aId) })
         })
 
         setMeta({
@@ -69,13 +66,11 @@ export default function AddAdmin() {
     loadHierarchy()
   }, [])
 
-  // Filter ACP Areas based on selected Zone name
   const acpOptions = useMemo(() => {
     if (!form.zone_id) return []
     return meta.acpAreas.filter(a => a.zone_id === form.zone_id)
   }, [meta.acpAreas, form.zone_id])
 
-  // Filter Police Stations based on selected ACP Area name
   const psOptions = useMemo(() => {
     if (!form.acp_area_id) return []
     return meta.policeStations.filter(ps => ps.acp_area_id === form.acp_area_id)
@@ -85,7 +80,6 @@ export default function AddAdmin() {
     const { name, value } = e.target
     setForm((prev) => {
       const next = { ...prev, [name]: value }
-      // Cascading Resets
       if (name === 'role' || name === 'zone_id') {
         next.acp_area_id = ''
         next.police_station_id = ''
@@ -106,13 +100,10 @@ export default function AddAdmin() {
       setError('All fields are required.')
       return
     }
-
     if (!form.zone_id) {
       setError('Zone selection is required.')
       return
     }
-
-    // Role-specific validation
     if (form.role === 'ACP' && !form.acp_area_id) {
       setError('ACP Area is required for ACP role.')
       return
@@ -122,15 +113,28 @@ export default function AddAdmin() {
       return
     }
 
+    // Build payload — convert to integers if numeric, else send as-is
+    const toInt = v => isNaN(parseInt(v)) ? v : parseInt(v)
+    const payload = {
+      name:      form.name,
+      login_id:  form.login_id,
+      password:  form.password,
+      role:      form.role,
+      zone_id:   toInt(form.zone_id),
+    }
+    if (form.role === 'ACP' || form.role === 'PS')
+      payload.acp_area_id = toInt(form.acp_area_id)
+    if (form.role === 'PS')
+      payload.police_station_id = toInt(form.police_station_id)
+
     try {
       setLoading(true)
-      const res = await adminAPI.post('/admin/add-admin', form)
+      const res = await adminAPI.post('/admin/add-admin', payload)
       if (res.data?.success) {
         setSuccess('ADMIN ACCOUNT CREATED SUCCESSFULLY.')
-        setForm({
-          name: '', login_id: '', password: '', role: 'DCP',
-          zone_id: '', acp_area_id: '', police_station_id: '',
-        })
+        setForm({ name: '', login_id: '', password: '', role: 'DCP', zone_id: '', acp_area_id: '', police_station_id: '' })
+      } else {
+        setError(res.data?.message || 'SYSTEM ERROR: UNABLE TO CREATE ADMIN.')
       }
     } catch (err) {
       setError(err?.response?.data?.message || 'SYSTEM ERROR: UNABLE TO CREATE ADMIN.')
@@ -205,17 +209,13 @@ export default function AddAdmin() {
             )}
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-police-blue text-white rounded-md px-4 py-3 text-xs font-black tracking-widest uppercase hover:bg-blue-800 transition-colors shadow-lg disabled:opacity-50 mt-4"
-          >
+          <button type="submit" disabled={loading} className="w-full bg-police-blue text-white rounded-md px-4 py-3 text-xs font-black tracking-widest uppercase hover:bg-blue-800 transition-colors shadow-lg disabled:opacity-50 mt-4">
             {loading ? 'Processing Registration...' : 'Authorize Admin Account'}
           </button>
         </form>
 
         {success && <div className="mt-6 p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-black tracking-widest uppercase rounded">{success}</div>}
-        {error && <div className="mt-6 p-3 bg-red-50 border border-red-200 text-red-700 text-[10px] font-black tracking-widest uppercase rounded">{error}</div>}
+        {error   && <div className="mt-6 p-3 bg-red-50 border border-red-200 text-red-700 text-[10px] font-black tracking-widest uppercase rounded">{error}</div>}
       </div>
     </div>
   )

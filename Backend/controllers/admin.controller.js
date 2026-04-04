@@ -200,6 +200,9 @@ const getCriminals = async (req, res, next) => {
          ps.name AS police_station,
          aa.name AS acp_area,
          z.name  AS zone,
+         ps.id   AS police_station_id,
+aa.id   AS acp_area_id,
+z.id    AS zone_id,
          -- Compliance summary
          COUNT(ci.id)                                              AS total_checkins,
          COUNT(ci.id) FILTER (WHERE ci.status = 'compliant')      AS compliant_count,
@@ -230,7 +233,7 @@ const getCriminals = async (req, res, next) => {
                 c.address, c.case_number, c.created_at,
                 c.externment_section, c.period_from, c.period_till,
                 c.residence_address, c.photo_url,
-                ps.name, aa.name, z.name
+                ps.name, aa.name, z.name,ps.id, aa.id, z.id
        ORDER BY c.name
        LIMIT $${nextIdx} OFFSET $${nextIdx + 1}`,
       dataValues
@@ -261,6 +264,9 @@ const getCriminals = async (req, res, next) => {
       policeStation:        c.police_station,
       acpArea:              c.acp_area,
       zone:                 c.zone,
+      policeStationId: c.police_station_id,
+acpAreaId:       c.acp_area_id,
+zoneId:          c.zone_id,
       createdAt:            c.created_at,
       stats: {
         totalCheckins:        parseInt(c.total_checkins),
