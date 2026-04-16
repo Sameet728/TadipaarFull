@@ -1,7 +1,21 @@
 import axios from 'axios';
+import Constants from 'expo-constants';
 
-// ✅ Your laptop IP (from ipconfig)
-const BASE_URL = 'http://192.168.1.34:5000/api';
+const runtimeHost =
+  Constants.expoConfig?.hostUri
+  || Constants.expoGoConfig?.debuggerHost
+  || Constants.manifest2?.extra?.expoGo?.debuggerHost
+  || '';
+
+const devHost = runtimeHost.split(':')[0];
+const envBaseUrl = process.env.EXPO_PUBLIC_API_URL;
+
+const BASE_URL = envBaseUrl
+  || (__DEV__ && devHost
+    ? `http://${devHost}:5000/api`
+    : 'http://127.0.0.1:5000/api');
+
+console.log('[API BASE URL]', BASE_URL);
 
 const API = axios.create({
   baseURL: BASE_URL,
