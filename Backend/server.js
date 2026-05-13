@@ -5,6 +5,7 @@ const cors         = require('cors');
 
 const errorHandler = require('./middleware/errorHandler');
 const { initializePoliceHierarchy } = require('./config/bootstrapHierarchy');
+const { initializeGeofencePresets } = require('./config/geofenceBootstrap');
 
 const criminalRoutes = require('./routes/criminal.routes');
 const tadipaarRoutes = require('./routes/tadipaar.routes');
@@ -63,6 +64,7 @@ app.use(errorHandler);
 
 const startServer = async () => {
   await initializePoliceHierarchy();
+  await initializeGeofencePresets();
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log('');

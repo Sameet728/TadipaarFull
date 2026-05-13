@@ -4,7 +4,7 @@ const router  = express.Router();
 const { adminLogin, adminMe }  = require('../controllers/admin.auth.controller');
 const { adminProtect: adminAuth } = require('../middleware/adminAuth');
 const {
-  getHierarchy, getCriminals, getCriminalById,
+  getHierarchy, getGeofencePresets, getCriminals, getCriminalById,
   getDashboard, getViolations, getMissedCheckIns,
   addRestrictedArea, deleteRestrictedArea, getAllCheckIns, addAdmin,
 } = require('../controllers/admin.controller');
@@ -28,6 +28,7 @@ router.use(adminAuth);
 
 // Meta / hierarchy
 router.get('/hierarchy', getHierarchy);
+router.get('/geofence-presets', getGeofencePresets);
 
 // Dashboard
 router.get('/dashboard', getDashboard);

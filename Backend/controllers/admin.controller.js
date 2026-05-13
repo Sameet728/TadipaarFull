@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const { query } = require('../config/db');
+const { ensureGeofenceSchema } = require('../config/geofenceBootstrap');
 
 const toInt = (value) => {
   if (value === undefined || value === null || value === '') return null;
@@ -356,7 +357,8 @@ const getCriminalById = async (req, res, next) => {
 
     // Restricted areas
     const areas = await query(
-      `SELECT id, area_name, latitude, longitude, radius_km, created_at
+      `SELECT id, area_name, latitude, longitude, radius_km, created_at,
+              source_zone_id, source_police_station_id
        FROM restricted_areas WHERE criminal_id=$1`,
       [id]
     );
@@ -646,18 +648,174 @@ const getMissedCheckIns = async (req, res, next) => {
 };
 
 // ─────────────────────────────────────────────────────────
-// POST /api/admin/areas  — add restricted area
+// GET /api/admin/geofence-presets — zones & PS with coordinates (Pune PCMC seed)
+// ─────────────────────────────────────────────────────────
+const getGeofencePresets = async (req, res, next) => {
+  try {
+    await ensureGeofenceSchema();
+    const zones = await query(
+      `SELECT id, name, geofence_lat, geofence_lng, geofence_radius_km
+       FROM zones
+       ORDER BY name`
+    );
+    const stations = await query(
+      `SELECT ps.id, ps.name, ps.geofence_lat, ps.geofence_lng, ps.geofence_radius_km,
+              aa.name AS acp_area, z.name AS zone
+       FROM police_stations ps
+       JOIN acp_areas aa ON aa.id = ps.acp_area_id
+       JOIN zones z ON z.id = ps.zone_id
+       ORDER BY z.name, aa.name, ps.name`
+    );
+    const mapZone = (z) => {
+      const ok = z.geofence_lat != null && z.geofence_lng != null && z.geofence_radius_km != null;
+      return {
+        id:           z.id,
+        name:         z.name,
+        latitude:     ok ? parseFloat(z.geofence_lat) : null,
+        longitude:    ok ? parseFloat(z.geofence_lng) : null,
+        radiusKm:     ok ? parseFloat(z.geofence_radius_km) : null,
+        configured:   ok,
+      };
+    };
+    const mapStation = (s) => {
+      const ok = s.geofence_lat != null && s.geofence_lng != null && s.geofence_radius_km != null;
+      return {
+        id:           s.id,
+        name:         s.name,
+        zone:         s.zone,
+        acpArea:      s.acp_area,
+        latitude:     ok ? parseFloat(s.geofence_lat) : null,
+        longitude:    ok ? parseFloat(s.geofence_lng) : null,
+        radiusKm:     ok ? parseFloat(s.geofence_radius_km) : null,
+        configured:   ok,
+      };
+    };
+    return res.status(200).json({
+      success: true,
+      zones:            zones.rows.map(mapZone),
+      policeStations:   stations.rows.map(mapStation),
+    });
+  } catch (err) { next(err); }
+};
+
+// ─────────────────────────────────────────────────────────
+// POST /api/admin/areas  — add restricted area (preset zone/PS or legacy lat/lng)
 // ─────────────────────────────────────────────────────────
 const addRestrictedArea = async (req, res, next) => {
   try {
-    const { criminalId, areaName, latitude, longitude, radiusKm } = req.body;
-    if (!criminalId || !areaName || !latitude || !longitude) {
-      return res.status(400).json({ success: false, message: 'criminalId, areaName, latitude, longitude are required.' });
+    const criminalId = parseInt(req.body.criminalId, 10);
+    if (!criminalId || Number.isNaN(criminalId)) {
+      return res.status(400).json({ success: false, message: 'criminalId is required.' });
+    }
+
+    const policeStationId = req.body.policeStationId != null && req.body.policeStationId !== ''
+      ? parseInt(req.body.policeStationId, 10)
+      : null;
+    const zoneId = req.body.zoneId != null && req.body.zoneId !== ''
+      ? parseInt(req.body.zoneId, 10)
+      : null;
+
+    if (policeStationId && zoneId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Send either policeStationId or zoneId, not both.',
+      });
+    }
+
+    if (policeStationId) {
+      if (Number.isNaN(policeStationId)) {
+        return res.status(400).json({ success: false, message: 'Invalid policeStationId.' });
+      }
+      const r = await query(
+        `SELECT ps.name, ps.geofence_lat, ps.geofence_lng, ps.geofence_radius_km,
+                z.name AS zone_name, aa.name AS acp_name
+         FROM police_stations ps
+         JOIN acp_areas aa ON aa.id = ps.acp_area_id
+         JOIN zones z ON z.id = ps.zone_id
+         WHERE ps.id = $1`,
+        [policeStationId]
+      );
+      if (!r.rows[0]) {
+        return res.status(404).json({ success: false, message: 'Police station not found.' });
+      }
+      const row = r.rows[0];
+      if (row.geofence_lat == null || row.geofence_lng == null) {
+        return res.status(400).json({
+          success: false,
+          message: 'This police station has no geofence coordinates configured.',
+        });
+      }
+      const areaName = `Restricted: ${row.name} (${row.zone_name} / ${row.acp_name})`;
+      const rad = parseFloat(row.geofence_radius_km) || 1.5;
+      try {
+        const result = await query(
+          `INSERT INTO restricted_areas
+             (criminal_id, area_name, latitude, longitude, radius_km, source_police_station_id)
+           VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+          [criminalId, areaName, row.geofence_lat, row.geofence_lng, rad, policeStationId]
+        );
+        return res.status(201).json({ success: true, message: 'Area added.', area: result.rows[0] });
+      } catch (err) {
+        if (err.code === '23505') {
+          return res.status(409).json({
+            success: false,
+            message: 'This police station is already a restricted area for this person.',
+          });
+        }
+        throw err;
+      }
+    }
+
+    if (zoneId) {
+      if (Number.isNaN(zoneId)) {
+        return res.status(400).json({ success: false, message: 'Invalid zoneId.' });
+      }
+      const r = await query(
+        `SELECT name, geofence_lat, geofence_lng, geofence_radius_km FROM zones WHERE id = $1`,
+        [zoneId]
+      );
+      if (!r.rows[0]) {
+        return res.status(404).json({ success: false, message: 'Zone not found.' });
+      }
+      const row = r.rows[0];
+      if (row.geofence_lat == null || row.geofence_lng == null) {
+        return res.status(400).json({
+          success: false,
+          message: 'This zone has no geofence coordinates configured.',
+        });
+      }
+      const areaName = `Restricted: entire ${row.name}`;
+      const rad = parseFloat(row.geofence_radius_km) || 8.0;
+      try {
+        const result = await query(
+          `INSERT INTO restricted_areas
+             (criminal_id, area_name, latitude, longitude, radius_km, source_zone_id)
+           VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+          [criminalId, areaName, row.geofence_lat, row.geofence_lng, rad, zoneId]
+        );
+        return res.status(201).json({ success: true, message: 'Area added.', area: result.rows[0] });
+      } catch (err) {
+        if (err.code === '23505') {
+          return res.status(409).json({
+            success: false,
+            message: 'This zone is already a restricted area for this person.',
+          });
+        }
+        throw err;
+      }
+    }
+
+    const { areaName, latitude, longitude, radiusKm } = req.body;
+    if (!areaName || latitude == null || longitude == null) {
+      return res.status(400).json({
+        success: false,
+        message: 'Either policeStationId, zoneId, or legacy fields (areaName, latitude, longitude) are required.',
+      });
     }
     const result = await query(
       `INSERT INTO restricted_areas (criminal_id, area_name, latitude, longitude, radius_km)
        VALUES ($1,$2,$3,$4,$5) RETURNING *`,
-      [criminalId, areaName.trim(), parseFloat(latitude), parseFloat(longitude), parseFloat(radiusKm || 1)]
+      [criminalId, String(areaName).trim(), parseFloat(latitude), parseFloat(longitude), parseFloat(radiusKm || 1)]
     );
     return res.status(201).json({ success: true, message: 'Area added.', area: result.rows[0] });
   } catch (err) { next(err); }
@@ -864,6 +1022,7 @@ const addAdmin = async (req, res, next) => {
 
 module.exports = {
   getHierarchy,
+  getGeofencePresets,
   getCriminals,
   getCriminalById,
   getDashboard,

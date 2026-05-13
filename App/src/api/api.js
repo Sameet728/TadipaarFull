@@ -1,45 +1,30 @@
 import axios from 'axios';
 import Constants from 'expo-constants';
 
-const runtimeHost =
-  Constants.expoConfig?.hostUri
-  || Constants.expoGoConfig?.debuggerHost
-  || Constants.manifest2?.extra?.expoGo?.debuggerHost
-  || '';
+// URLs provided
+const RENDER_PROD_URL = 'https://tadipaarfull.onrender.com/api'; 
+const RENDER_BK_URL = 'https://tadipaarbk-uxmc.onrender.com/api';
 
+const runtimeHost = Constants.expoConfig?.hostUri || '';
 const devHost = runtimeHost.split(':')[0];
-const envBaseUrl = process.env.EXPO_PUBLIC_API_URL;
 
-const BASE_URL = envBaseUrl
-  || (__DEV__ && devHost
-    ? `http://${devHost}:5000/api`
-    : 'http://127.0.0.1:5000/api');
+// Logic: Use Environment Variable first, then Render Production, then Local fallback
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL 
+  || RENDER_PROD_URL 
+  || (__DEV__ && devHost ? `http://${devHost}:5000/api` : 'http://127.0.0.1:5000/api');
 
 console.log('[API BASE URL]', BASE_URL);
 
 const API = axios.create({
   baseURL: BASE_URL,
   timeout: 15000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  headers: { 'Content-Type': 'application/json' },
 });
 
-// 🔍 Debug logs (optional but useful)
-API.interceptors.request.use(
-  (config) => {
-    console.log('[API]', config.method?.toUpperCase(), config.url);
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-API.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    console.log('[API ERROR]', error?.response?.data || error.message);
-    return Promise.reject(error);
-  }
-);
+// Interceptors (keep these as you had them, they are great for debugging)
+API.interceptors.request.use((config) => {
+  console.log('[API REQUEST]', config.method?.toUpperCase(), config.url);
+  return config;
+});
 
 export default API;
