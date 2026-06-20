@@ -1,10 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowDownToLine, ShieldAlert, MapPin, Bell, AlertTriangle } from 'lucide-react';
+import { ArrowDownToLine, ShieldAlert, MapPin, Bell, AlertTriangle, Loader2 } from 'lucide-react';
 import adminAPI from '../api/api';
 
 export default function DownloadApp() {
   const [appVersion, setAppVersion] = useState('Loading...');
+  const [isDownloading, setIsDownloading] = useState(false);
 
+  const handleDownloadClick = () => {
+    if (isDownloading) return;
+    setIsDownloading(true);
+    setTimeout(() => {
+      setIsDownloading(false);
+    }, 4000); // Show downloading state for 4 seconds while browser initializes download
+  };
   // Fetch version from the public config
   useEffect(() => {
     const fetchConfig = async () => {
@@ -76,10 +84,22 @@ export default function DownloadApp() {
             <a
               href="/tadipaar.apk"
               download="tadipaar.apk"
-              className="w-full flex items-center justify-center gap-3 px-6 py-3 bg-blue-700 text-white rounded font-semibold shadow hover:bg-blue-800 transition-colors duration-200"
+              onClick={handleDownloadClick}
+              className={`w-full flex items-center justify-center gap-3 px-6 py-3 text-white rounded font-semibold shadow transition-colors duration-200 ${
+                isDownloading ? 'bg-blue-900 cursor-wait' : 'bg-blue-700 hover:bg-blue-800'
+              }`}
             >
-              <ArrowDownToLine size={20} />
-              <span>DOWNLOAD APPLICATION (.APK)</span>
+              {isDownloading ? (
+                <>
+                  <Loader2 size={20} className="animate-spin" />
+                  <span>STARTING DOWNLOAD...</span>
+                </>
+              ) : (
+                <>
+                  <ArrowDownToLine size={20} />
+                  <span>DOWNLOAD APPLICATION (.APK)</span>
+                </>
+              )}
             </a>
             <span className="text-xs text-slate-500">Secure direct download from Pune City Police servers</span>
           </div>
