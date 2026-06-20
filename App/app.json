@@ -3,6 +3,7 @@
     "name": "Maha Police Tadipaar",
     "slug": "tadipaar-app",
     "version": "1.0.0",
+    "newArchEnabled": false,
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "userInterfaceStyle": "light",
@@ -43,7 +44,7 @@
           "apiKey": "YOUR_GOOGLE_MAPS_API_KEY"
         }
       },
-      "package": "com.shxbh0.tadipaarapp"
+      "package": "com.sameet.tadipaarapp"
     },
     "web": {
       "favicon": "./assets/images/icon.png",
@@ -64,9 +65,9 @@
     "extra": {
       "apiBaseUrl": "https://your-api-server.com/api",
       "eas": {
-        "projectId": "d2123f29-402b-473c-a4d0-84ba3e9d2449"
+        "projectId": "891b9bf8-fa7d-4860-a66b-230630ae2567"
       }
     },
-    "owner": "shxbh0"
+    "owner": "sameet728"
   }
 }
