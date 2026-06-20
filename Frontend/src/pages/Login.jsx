@@ -182,8 +182,19 @@ export default function Login() {
           </p>
         </div>
 
+        {/* Download App Link */}
+        <div className="mt-5 flex justify-center">
+          <button 
+            onClick={() => navigate('/download')}
+            className="inline-flex items-center gap-3 bg-white hover:bg-slate-50 text-[#1E3A8A] border-2 border-[#1E3A8A] px-5 py-3 rounded-xl text-xs font-black tracking-widest uppercase transition-all shadow-md hover:shadow-lg"
+          >
+            <img src="/app-icon.png" alt="App Icon" className="w-6 h-6 rounded border border-slate-200" />
+            Download Monitoring App
+          </button>
+        </div>
+
         {/* Footer */}
-        <p className="text-center text-xs text-gray-400 mt-5 tracking-wide">
+        <p className="text-center text-xs text-gray-400 mt-6 tracking-wide">
           PIMPRI CHINCHWAD POLICE COMMISSIONERATE
         </p>
 

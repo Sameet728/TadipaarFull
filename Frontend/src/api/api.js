@@ -27,7 +27,10 @@ adminAPI.interceptors.response.use(
   err => {
     if (err.response?.status === 401) {
       localStorage.removeItem('tadipaar_admin_token')
-      window.location.href = '/login'
+      const publicPaths = ['/login', '/download', '/capture']
+      if (!publicPaths.some(p => window.location.pathname.startsWith(p))) {
+        window.location.href = '/login'
+      }
     }
     return Promise.reject(err)
   }
