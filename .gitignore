@@ -1,0 +1,17 @@
+node_modules/
+Backend/node_modules/
+Frontend/node_modules/
+App/node_modules/
+
+.env
+Backend/.env
+Frontend/.env
+App/.env
+
+.vscode/
+.expo/
+.idea/
+
+dist/
+build/
+App/dist/

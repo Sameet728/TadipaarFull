@@ -1,0 +1,36 @@
+{
+  "name": "tadipaar-backend",
+  "version": "1.0.0",
+  "type": "commonjs",
+  "description": "Project Tadipaar API",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-rekognition": "^3.1016.0",
+    "@tmcw/togeojson": "^7.1.2",
+    "@turf/turf": "^7.3.5",
+    "@xmldom/xmldom": "^0.9.10",
+    "bcryptjs": "^2.4.3",
+    "cloudinary": "^1.41.0",
+    "compression": "^1.8.1",
+    "connect-timeout": "^1.9.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^8.5.2",
+    "helmet": "^8.2.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "multer-storage-cloudinary": "^4.0.0",
+    "node-cron": "^4.4.1",
+    "pg": "^8.11.5",
+    "tokml": "^0.4.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.3"
+  }
+}
