@@ -74,8 +74,8 @@ export default function DownloadApp() {
           {/* Download Action */}
           <div className="flex flex-col items-center gap-2 w-full max-w-sm justify-center mb-12">
             <a
-              href="/tadipaar.xapk"
-              download="tadipaar.xapk"
+              href="/tadipaar.apk"
+              download="tadipaar.apk"
               className="w-full flex items-center justify-center gap-3 px-6 py-3 bg-blue-700 text-white rounded font-semibold shadow hover:bg-blue-800 transition-colors duration-200"
             >
               <ArrowDownToLine size={20} />
