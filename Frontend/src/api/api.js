@@ -4,7 +4,7 @@ import axios from 'axios'
 const IS_PROD = import.meta.env.VITE_IS_PRODUCTION === 'true'
 
 const PROD_URL = import.meta.env.VITE_PROD_URL || 'https://tadipaarfull.onrender.com/api'
-const DEV_URL = import.meta.env.VITE_DEV_URL || 'http://192.168.1.9:5000/api'
+const DEV_URL = import.meta.env.VITE_DEV_URL || 'http://192.168.1.6:5000/api'
 
 const BASE_URL = IS_PROD ? PROD_URL : DEV_URL
 

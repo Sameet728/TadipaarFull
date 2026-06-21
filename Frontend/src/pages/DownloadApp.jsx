@@ -111,7 +111,7 @@ export default function DownloadApp() {
               <FeatureCard
                 icon={<MapPin size={24} className="text-slate-700" />}
                 title="Location Tracking"
-                desc="Requires 'Always Allow' permissions to monitor geographic confinement zones at all times."
+                desc="Requires 'Always Allow' permissions to monitor geographic restricted zones at all times."
               />
               <FeatureCard
                 icon={<ShieldAlert size={24} className="text-slate-700" />}

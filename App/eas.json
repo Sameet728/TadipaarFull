@@ -15,7 +15,7 @@
       "env": {
         "EXPO_PUBLIC_IS_PRODUCTION": "true",
         "EXPO_PUBLIC_PROD_URL": "https://tadipaarbk-uxmc.onrender.com/api",
-        "EXPO_PUBLIC_DEV_URL": "http://192.168.1.9:5000/api"
+        "EXPO_PUBLIC_DEV_URL": "http://192.168.1.6:5000/api"
       }
     },
     "production": {

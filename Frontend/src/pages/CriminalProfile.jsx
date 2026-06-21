@@ -200,24 +200,24 @@ const PuneBoundaryMap = ({ areas = [], divisions = [], className = "w-full h-96 
     color: '#DC2626',
     weight: 4,
     opacity: 0.9,
-    fillColor: '#3B82F6',
+    fillColor: '#EF4444',
     fillOpacity: 0.15,
   }
 
   const zoneCircleStyle = {
-    color: '#3B82F6',
+    color: '#DC2626',
     weight: 2,
     opacity: 0.6,
-    fillColor: '#3B82F6',
-    fillOpacity: 0.05,
+    fillColor: '#EF4444',
+    fillOpacity: 0.1,
     dashArray: '5 5',
   }
 
   const divisionPolygonStyle = {
-    color: '#10B981',
+    color: '#DC2626',
     weight: 3,
     opacity: 0.9,
-    fillColor: '#10B981',
+    fillColor: '#EF4444',
     fillOpacity: 0.2,
   }
 
@@ -476,7 +476,7 @@ export default function CriminalProfile() {
           </Section>
 
           <Section
-            title={`Confinement Zone`}
+            title={`Restricted Zone (Externment)`}
             badge={
               <span className="text-xs text-red-500 font-semibold bg-red-50 px-2 py-0.5 rounded-full border border-red-100">
                 Geo-fenced
@@ -488,25 +488,25 @@ export default function CriminalProfile() {
             {restrictedAreas.length === 0 ? (
               <div className="text-center py-4">
                 <AlertTriangle size={28} className="text-gray-200 mx-auto mb-2" />
-                <p className="text-gray-400 text-sm font-medium">No confinement zone defined.</p>
+                <p className="text-gray-400 text-sm font-medium">No restricted zone defined.</p>
                 <p className="text-gray-300 text-xs mt-1">
-                  Confinement zone is set during registration via "Confine to Pune City Limits" option.
+                  Restricted zone is set during registration via "Assign Jurisdiction" option.
                 </p>
               </div>
             ) : (
               <>
-                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p className="text-xs text-blue-800 font-semibold mb-1">
-                    📍 Territorial Confinement
+                <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-xs text-red-800 font-semibold mb-1">
+                    📍 Territorial Restriction (Tadipaar)
                   </p>
-                  <p className="text-xs text-blue-600">
-                    The externee must remain within the assigned boundaries shown on the map at all times. Crossing outside will trigger a violation.
+                  <p className="text-xs text-red-600">
+                    The externee is legally banned from the assigned boundaries shown on the map at all times. Entering this zone will trigger a violation.
                   </p>
                 </div>
                 <div className="space-y-2">
                   {restrictedAreas.map((area) => {
-                    const isConfinement = area.is_confinement === true
-                    if (!isConfinement) return null
+                    const isRestricted = area.is_confinement === false
+                    if (!isRestricted) return null
                     return (
                       <div key={area.id} className="flex items-center justify-between bg-red-50 border border-red-100 rounded-xl px-4 py-3">
                         <div className="flex items-start gap-3">
@@ -514,7 +514,7 @@ export default function CriminalProfile() {
                           <div>
                             <div className="flex flex-wrap items-center gap-2">
                               <p className="text-sm font-bold text-gray-800">{area.area_name}</p>
-                              <Chip label="Confinement Zone" color="red" />
+                              <Chip label="Restricted Zone" color="red" />
                             </div>
                             {parseFloat(area.latitude) !== 0 && (
                               <p className="text-xs text-gray-400 mt-0.5">
@@ -522,7 +522,7 @@ export default function CriminalProfile() {
                               </p>
                             )}
                             <p className="text-xs text-red-600 font-semibold mt-1">
-                              ⚠️ Must stay within {area.area_type === 'polygon' ? `${area.area_name} division` : 'Pune city boundary'}
+                              ⛔ BANNED: Must stay outside {area.area_type === 'polygon' ? `${area.area_name} division` : 'Pune city boundary'}
                             </p>
                             {parseFloat(area.latitude) !== 0 ? (
                               <a
@@ -620,7 +620,7 @@ export default function CriminalProfile() {
               <MapPin className="text-white" size={24} />
               <div>
                 <h2 className="text-white font-black tracking-widest uppercase text-sm">{fullScreenArea.area_name} JURISDICTION</h2>
-                <p className="text-blue-200 text-[10px] font-bold tracking-widest uppercase">Interactive Confinement Zone Map</p>
+                <p className="text-blue-200 text-[10px] font-bold tracking-widest uppercase">Interactive Restricted Zone Map</p>
               </div>
             </div>
             <button 

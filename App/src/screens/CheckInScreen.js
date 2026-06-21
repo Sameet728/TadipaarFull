@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   Image, Alert, ActivityIndicator, ScrollView,
@@ -13,7 +13,8 @@ import { useNetInfo } from '@react-native-community/netinfo';
 
 import Colors from '../constants/colors';
 import API from '../api/api';
-import { getToken } from '../utils/storage';
+import { getToken, removeToken } from '../utils/storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // ─── Face check status config ──────────────────────────────────────────────────
 const FACE_STATUS = {
@@ -142,7 +143,7 @@ const FaceResultModal = ({ visible, result, onClose, onRetake }) => {
 };
 
 // ─── Main Screen ───────────────────────────────────────────────────────────────
-const CheckInScreen = () => {
+const CheckInScreen = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const netInfo = useNetInfo();
 
@@ -154,6 +155,50 @@ const CheckInScreen = () => {
   const [faceResult,      setFaceResult]      = useState(null);  // result object from server
   const [faceModalVisible,setFaceModalVisible]= useState(false);
   const [blinkCamVisible, setBlinkCamVisible] = useState(false);
+  const [criminalName, setCriminalName]       = useState('');
+  const [isCheckedInToday, setIsCheckedInToday] = useState(false);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token = await getToken();
+        const criminalId = await AsyncStorage.getItem('criminalId');
+        if (!criminalId) return;
+
+        const res = await API.get(`/criminal/${criminalId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        setCriminalName(res.data?.criminal?.name || '');
+
+        const lastCheckInDate = await AsyncStorage.getItem('lastCheckInDate');
+        if (lastCheckInDate) {
+          const today = new Date().toISOString().split('T')[0];
+          if (lastCheckInDate === today) {
+            setIsCheckedInToday(true);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load profile', err);
+      }
+    };
+    fetchProfile();
+  }, []);
+
+  const handleLogout = () => {
+    Alert.alert('Secure Logout', 'Are you sure you want to terminate this session?', [
+      { text: 'CANCEL', style: 'cancel' },
+      {
+        text: 'LOGOUT',
+        style: 'destructive',
+        onPress: async () => {
+          await removeToken();
+          await AsyncStorage.removeItem('criminalId');
+          navigation.replace('Login');
+        },
+      },
+    ]);
+  };
 
   // ── Pull to Refresh ──────────────────────────────────────────────────────────
   const onRefresh = useCallback(() => {
@@ -288,6 +333,10 @@ const CheckInScreen = () => {
         });
         setFaceModalVisible(true);
 
+        // Save local cache
+        const todayStr = new Date().toISOString().split('T')[0];
+        await AsyncStorage.setItem('lastCheckInDate', todayStr);
+
         // After modal is dismissed → show compliance alert
         // (handled via onClose of modal below via successPending flag)
         setSuccessPending({
@@ -296,10 +345,12 @@ const CheckInScreen = () => {
         });
       } else {
         // Fallback — just show alert (shouldn't happen if backend is correct)
+        const todayStr = new Date().toISOString().split('T')[0];
+        await AsyncStorage.setItem('lastCheckInDate', todayStr);
         Alert.alert(
           isCompliant ? '✅ Check-In Successful' : '⚠️ Check-In Recorded',
           data.message,
-          [{ text: 'OK', onPress: resetForm }]
+          [{ text: 'OK', onPress: () => { resetForm(); setIsCheckedInToday(true); } }]
         );
       }
 
@@ -324,8 +375,10 @@ const CheckInScreen = () => {
         });
         setFaceModalVisible(true);
       } else if (err?.response?.status === 409) {
-        // Already checked in today
-        Alert.alert('Already Checked In', data?.message || 'You have already checked in today.');
+        // Already checked in today - update cache to fix loop
+        const todayStr = new Date().toISOString().split('T')[0];
+        await AsyncStorage.setItem('lastCheckInDate', todayStr);
+        setIsCheckedInToday(true);
       } else {
         // Generic error
         Alert.alert(
@@ -351,7 +404,7 @@ const CheckInScreen = () => {
         Alert.alert(
           successPending.title,
           successPending.message,
-          [{ text: 'OK', onPress: resetForm }]
+          [{ text: 'OK', onPress: () => { resetForm(); setIsCheckedInToday(true); } }]
         );
         setSuccessPending(null);
       }, 400);
@@ -413,12 +466,20 @@ const CheckInScreen = () => {
       />
 
       {/* Header */}
-      <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
-        <Text style={styles.headerTitle}>OFFICIAL VERIFICATION</Text>
-        <Text style={styles.headerSub}>DAILY CHECK-IN PORTAL</Text>
+      <View style={[styles.header, { paddingTop: insets.top + 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20 }]}>
+        <View>
+          <Text style={styles.headerTitle}>OFFICIAL VERIFICATION</Text>
+          <Text style={[styles.headerSub, { fontSize: 13, color: '#F59E0B', marginTop: 2 }]}>
+            {criminalName ? `WELCOME, ${criminalName.toUpperCase()}` : 'DAILY CHECK-IN PORTAL'}
+          </Text>
+        </View>
+        <TouchableOpacity onPress={handleLogout} style={{ padding: 8, backgroundColor: '#EFF6FF', borderRadius: 12, borderWidth: 1, borderColor: '#BFDBFE' }}>
+          <Ionicons name="log-out-outline" size={22} color="#1E3A8A" />
+        </TouchableOpacity>
       </View>
 
-      <ScrollView
+      {!isCheckedInToday ? (
+        <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -636,7 +697,21 @@ const CheckInScreen = () => {
             Submitting falsified information is a punishable offense under law.
           </Text>
         </View>
-      </ScrollView>
+        </ScrollView>
+      ) : (
+        <View style={styles.doneContainer}>
+          <View style={styles.doneIconWrapper}>
+            <Ionicons name="checkmark-done-circle" size={100} color="#10B981" />
+          </View>
+          <Text style={styles.doneTitle}>VERIFIED FOR TODAY</Text>
+          <Text style={styles.doneText}>
+            You have successfully completed your daily check-in verification. Your presence has been recorded by the system.
+          </Text>
+          <Text style={styles.doneSubText}>
+            Check-ins will automatically unlock tomorrow.
+          </Text>
+        </View>
+      )}
     </SafeAreaView>
   );
 };
@@ -737,7 +812,7 @@ const modal = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-    gap: 6,
+    gap: 8,
   },
   retakeBtn: {
     backgroundColor: '#EFF6FF',
@@ -977,4 +1052,39 @@ const styles = StyleSheet.create({
     borderRadius: 8, borderWidth: 1, borderColor: '#FECACA', gap: 8,
   },
   warningText: { fontSize: 11, color: '#DC2626', flex: 1, fontWeight: '600', lineHeight: 16 },
+
+  // Done Container
+  doneContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 32,
+  },
+  doneIconWrapper: {
+    backgroundColor: '#D1FAE5',
+    borderRadius: 100,
+    padding: 16,
+    marginBottom: 24,
+  },
+  doneTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#065F46',
+    letterSpacing: 0.5,
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  doneText: {
+    fontSize: 15,
+    color: '#475569',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  doneSubText: {
+    fontSize: 13,
+    color: '#94A3B8',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
 });

@@ -203,7 +203,7 @@ const register = async (req, res, next) => {
         `INSERT INTO restricted_areas
            (criminal_id, area_name, latitude, longitude, radius_km, is_confinement)
          VALUES ($1, $2, $3, $4, $5, $6)`,
-        [c.id, 'Pune City Boundary', 18.5204, 73.8567, 25, true]
+        [c.id, 'Pune City Boundary', 18.5204, 73.8567, 25, false]
       );
     } 
     
@@ -220,7 +220,7 @@ const register = async (req, res, next) => {
             `INSERT INTO restricted_areas
                (criminal_id, area_name, latitude, longitude, radius_km, is_confinement, area_type)
              VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-            [c.id, div.name, 0, 0, 0, true, 'polygon']
+            [c.id, div.name, 0, 0, 0, false, 'polygon']
           );
         }
       }

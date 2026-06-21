@@ -4,7 +4,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import LoginScreen from '../screens/LoginScreen';
-import CriminalTabs from './CriminalTabs';
+import CheckInScreen from '../screens/CheckInScreen';
 import { getToken } from '../utils/storage';
 
 const Stack = createNativeStackNavigator();
@@ -44,7 +44,7 @@ const AppNavigator = () => {
         screenOptions={{ headerShown: false }}
       >
         <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="MainApp" component={CriminalTabs} />
+        <Stack.Screen name="MainApp" component={CheckInScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
