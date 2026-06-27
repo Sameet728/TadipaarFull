@@ -13,8 +13,10 @@ import { useJurisdiction } from '../hooks/useJurisdiction';
 import adminAPI from '../api/api';
 import { downloadCSV } from '../utils/csv';
 import { dedupeById, parseHierarchyMeta } from '../utils/hierarchyMeta';
+import { useTranslation } from 'react-i18next';
 
 export default function Dashboard() {
+  const { t } = useTranslation();
   const { auth } = useAuth();
   const role = auth?.role;
   const jurisdiction = useJurisdiction();
@@ -259,13 +261,13 @@ export default function Dashboard() {
         <div>
           <h1 className="text-2xl font-black tracking-widest text-police-navy flex items-center gap-3 uppercase">
             <Activity size={28} className="text-police-blue" />
-            COMMAND DASHBOARD
+            {t('COMMAND DASHBOARD')}
           </h1>
           <p className="text-xs font-bold tracking-widest text-slate-400 mt-2 uppercase">
-            {role === 'CP' ? 'CITY-WIDE OVERVIEW — ALL ZONES' :
-             role === 'DCP' ? `ZONE OVERVIEW — ${auth?.zoneName}` :
-             role === 'ACP' ? `ACP DIVISION — ${auth?.acpName}` : 
-             `POLICE STATION — ${auth?.psName}`}
+            {role === 'CP' ? t('CITY-WIDE OVERVIEW — ALL ZONES') :
+             role === 'DCP' ? `${t('ZONE OVERVIEW')} — ${auth?.zoneName}` :
+             role === 'ACP' ? `${t('ACP DIVISION')} — ${auth?.acpName}` : 
+             `${t('POLICE STATION')} — ${auth?.psName}`}
           </p>
         </div>
       </div>
@@ -275,34 +277,34 @@ export default function Dashboard() {
           onFilter={onFilter}
           onDownload={handleDownload}
           loading={loading}
-          criminals={criminals} // FIX: Corrected variable name from allcriminals
+          criminals={criminals}
         />
       </div>
 
       {role === 'CP' && (
         <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-8">
           <h2 className="text-xs font-black tracking-widest text-police-slate mb-4 uppercase border-b border-slate-100 pb-3">
-            ADD ADMIN USER
+            {t('ADD ADMIN USER')}
           </h2>
 
           <form onSubmit={handleAdminCreate} className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-7 gap-3">
             <input
               type="text"
-              placeholder="Name"
+              placeholder={t('Name')}
               value={newAdmin.name}
               onChange={(e) => setNewAdmin((p) => ({ ...p, name: e.target.value }))}
               className="border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-police-blue"
             />
             <input
               type="text"
-              placeholder="Login ID"
+              placeholder={t('Login ID')}
               value={newAdmin.login_id}
               onChange={(e) => setNewAdmin((p) => ({ ...p, login_id: e.target.value }))}
               className="border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-police-blue"
             />
             <input
               type="password"
-              placeholder="Password"
+              placeholder={t('Password')}
               value={newAdmin.password}
               onChange={(e) => setNewAdmin((p) => ({ ...p, password: e.target.value }))}
               className="border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-police-blue"
@@ -328,7 +330,7 @@ export default function Dashboard() {
               onChange={(e) => setNewAdmin((p) => ({ ...p, zone_id: e.target.value, acp_area_id: '', police_station_id: '' }))}
               className="border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-police-blue"
             >
-              <option value="">Select Zone</option>
+              <option value="">{t('Select Zone')}</option>
               {zoneOptions.map((z) => (
                 <option key={z.id} value={z.id}>{z.name}</option>
               ))}
@@ -340,7 +342,7 @@ export default function Dashboard() {
                 onChange={(e) => setNewAdmin((p) => ({ ...p, acp_area_id: e.target.value, police_station_id: '' }))}
                 className="border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-police-blue"
               >
-                <option value="">Select ACP Area</option>
+                <option value="">{t('Select ACP Area')}</option>
                 {acpOptions.map((a) => (
                   <option key={a.id} value={a.id}>{a.name}</option>
                 ))}
@@ -353,7 +355,7 @@ export default function Dashboard() {
                 onChange={(e) => setNewAdmin((p) => ({ ...p, police_station_id: e.target.value }))}
                 className="border border-slate-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-police-blue"
               >
-                <option value="">Select Police Station</option>
+                <option value="">{t('Select Police Station')}</option>
                 {psOptions.map((ps) => (
                   <option key={ps.id} value={ps.id}>{ps.name}</option>
                 ))}
@@ -365,7 +367,7 @@ export default function Dashboard() {
               disabled={adminCreateLoading}
               className="bg-police-blue text-white rounded-md px-4 py-2 text-sm font-bold tracking-wide disabled:opacity-60"
             >
-              {adminCreateLoading ? 'CREATING...' : 'CREATE ADMIN'}
+              {adminCreateLoading ? t('CREATING...') : t('CREATE ADMIN')}
             </button>
           </form>
 
@@ -379,47 +381,47 @@ export default function Dashboard() {
         <div className="bg-police-navy rounded-xl shadow-lg p-6 mb-8 border border-slate-800">
           <div className="flex items-center mb-6 border-b border-slate-700 pb-3">
             <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse mr-3"></div>
-            <h2 className="text-xs font-black tracking-widest text-police-gold uppercase">LIVE SYSTEM SNAPSHOT (24H)</h2>
+            <h2 className="text-xs font-black tracking-widest text-police-gold uppercase">{t('LIVE SYSTEM SNAPSHOT (24H)')}</h2>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatCard label="CITY TOTAL" value={dash.summary.total_criminals} color="blue" />
-            <StatCard label="CHECKED IN TODAY" value={dash.summary.total_checkins_today} color="green" />
-            <StatCard label="NOT CHECKED IN" value={dash.summary.not_checked_in_today} color="orange" />
-            <StatCard label="ACTIVE VIOLATIONS" value={dash.summary.violations_today} color="red" />
+            <StatCard label={t('CITY TOTAL')} value={dash.summary.total_criminals} color="blue" />
+            <StatCard label={t('CHECKED IN TODAY')} value={dash.summary.total_checkins_today} color="green" />
+            <StatCard label={t('NOT CHECKED IN')} value={dash.summary.not_checked_in_today} color="orange" />
+            <StatCard label={t('ACTIVE VIOLATIONS')} value={dash.summary.violations_today} color="red" />
           </div>
         </div>
       )}
 
       {/* DETAILED STAT CARDS */}
-      <h2 className="text-xs font-black tracking-widest text-slate-500 mb-4 uppercase">JURISDICTION METRICS</h2>
+      <h2 className="text-xs font-black tracking-widest text-slate-500 mb-4 uppercase">{t('JURISDICTION METRICS')}</h2>
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 mb-8">
-        <StatCard label="TOTAL RECORDS" value={total} icon={Users} color="blue" />
-        <StatCard label="COMPLIANT" value={compliant} icon={CheckCircle} color="green" />
-        <StatCard label="PENDING CHECK-IN" value={notChecked} icon={Clock} color="orange" />
-        <StatCard label="ZONE BREACHES" value={redZone} icon={AlertTriangle} color="red" />
+        <StatCard label={t('TOTAL RECORDS')} value={total} icon={Users} color="blue" />
+        <StatCard label={t('COMPLIANT')} value={compliant} icon={CheckCircle} color="green" />
+        <StatCard label={t('PENDING CHECK-IN')} value={notChecked} icon={Clock} color="orange" />
+        <StatCard label={t('ZONE BREACHES')} value={redZone} icon={AlertTriangle} color="red" />
         <StatCard label="SEC 55/56" value={sec55 + sec56} icon={Shield} color="purple" sub={`55: ${sec55} | 56: ${sec56}`} />
         <StatCard label="SEC 57" value={sec57} icon={Shield} color="gray" />
       </div>
 
       {/* CHARTS ROW */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <Card title="COMPLIANCE BREAKDOWN" className="lg:col-span-1 border-t-4 border-t-police-blue">
+        <Card title={t('COMPLIANCE BREAKDOWN')} className="lg:col-span-1 border-t-4 border-t-police-blue">
           <ComplianceDonut compliant={compliant} nonCompliant={redZone} notCheckedIn={notChecked} />
         </Card>
-        <Card title="7-DAY VERIFICATION TREND" className="lg:col-span-2 border-t-4 border-t-police-blue">
+        <Card title={t('7-DAY VERIFICATION TREND')} className="lg:col-span-2 border-t-4 border-t-police-blue">
           <TrendLine data={trendData} />
         </Card>
       </div>
 
       {/* BREAKDOWN BAR */}
       {breakdownData.length > 0 && role !== 'PS' && (
-        <Card title={`TERRITORIAL BREAKDOWN — ${role === 'CP' ? 'ZONES' : role === 'DCP' ? 'ACP DIVISIONS' : 'POLICE STATIONS'}`} className="mb-8 border-t-4 border-t-slate-700">
+        <Card title={t('TERRITORIAL BREAKDOWN — ZONES')} className="mb-8 border-t-4 border-t-slate-700">
           <BreakdownBar data={breakdownData} labelKey={breakdownLabel} />
         </Card>
       )}
 
       {/* SECTION BREAKDOWN */}
-      <h2 className="text-xs font-black tracking-widest text-slate-500 mb-4 uppercase">LEGAL SECTION DISTRIBUTION</h2>
+      <h2 className="text-xs font-black tracking-widest text-slate-500 mb-4 uppercase">{t('LEGAL SECTION DISTRIBUTION')}</h2>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {[
           ['SECTION 55', sec55, 'border-t-purple-500'],
@@ -429,7 +431,7 @@ export default function Dashboard() {
           <div key={label} className={`bg-white rounded-lg shadow-sm border border-slate-200 p-6 border-t-4 ${borderClass}`}>
             <h3 className="text-[11px] font-black text-slate-400 mb-2 uppercase tracking-widest">{label}</h3>
             <div className="text-4xl font-black text-police-navy mb-2">{val}</div>
-            <div className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">REGISTERED EXTERNEES</div>
+            <div className="text-[10px] font-bold tracking-widest text-slate-400 uppercase">{t('REGISTERED EXTERNEES')}</div>
           </div>
         ))}
       </div>

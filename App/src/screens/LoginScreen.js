@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, ActivityIndicator, Alert,
-  KeyboardAvoidingView, Platform, ScrollView, StatusBar
+  KeyboardAvoidingView, Platform, ScrollView, StatusBar, I18nManager
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
@@ -16,10 +17,17 @@ const LoginScreen = ({ navigation }) => {
   const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const { t, i18n } = useTranslation();
+
+  const toggleLanguage = async () => {
+    const newLang = i18n.language === 'en' ? 'mr' : 'en';
+    await i18n.changeLanguage(newLang);
+    await AsyncStorage.setItem('appLanguage', newLang);
+  };
 
   const handleLogin = async () => {
     if (!loginId.trim() || !password.trim()) {
-      Alert.alert('Validation Error', 'Please enter your Official ID and Password.');
+      Alert.alert(t('Validation Error'), t('Please enter your Official ID and Password.'));
       return;
     }
 
@@ -52,8 +60,8 @@ const LoginScreen = ({ navigation }) => {
     } catch (err) {
       console.log('LOGIN ERROR:', err);
       Alert.alert(
-        'Authentication Failed',
-        err?.response?.data?.message || err.message || 'Unable to authenticate credentials.'
+        t('Authentication Failed'),
+        err?.response?.data?.message || err.message || t('Authentication Failed')
       );
     } finally {
       setLoading(false);
@@ -72,21 +80,30 @@ const LoginScreen = ({ navigation }) => {
           keyboardShouldPersistTaps="handled"
           bounces={false}
         >
+          {/* Language Toggle */}
+          <View style={styles.langToggleContainer}>
+            <TouchableOpacity onPress={toggleLanguage} style={styles.langToggleBtn}>
+              <Text style={styles.langToggleText}>
+                {i18n.language === 'en' ? 'मराठी' : 'ENGLISH'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           <View style={styles.headerContainer}>
-            <Text style={styles.title}>MAHARASHTRA POLICE</Text>
-            <Text style={styles.subtitle}>TADIPAAR</Text>
-            <Text style={styles.departmentText}>EXTERNMENT MONITORING SYSTEM</Text>
+            <Text style={styles.title}>{t('MAHARASHTRA POLICE')}</Text>
+            <Text style={styles.subtitle}>{t('TADIPAAR')}</Text>
+            <Text style={styles.departmentText}>{t('EXTERNMENT MONITORING SYSTEM')}</Text>
           </View>
 
           <View style={styles.card}>
             <View style={styles.cardHeader}>
-              <Text style={styles.cardTitle}>SECURE LOGIN</Text>
+              <Text style={styles.cardTitle}>{t('SECURE LOGIN')}</Text>
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>OFFICIAL ID</Text>
+              <Text style={styles.label}>{t('OFFICIAL ID')}</Text>
               <TextInput
-                placeholder="Enter Official ID"
+                placeholder={t('Enter Official ID')}
                 placeholderTextColor="#94A3B8"
                 value={loginId}
                 onChangeText={setLoginId}
@@ -98,9 +115,9 @@ const LoginScreen = ({ navigation }) => {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>PASSWORD</Text>
+              <Text style={styles.label}>{t('PASSWORD')}</Text>
               <TextInput
-                placeholder="Enter Password"
+                placeholder={t('Enter Password')}
                 placeholderTextColor="#94A3B8"
                 value={password}
                 onChangeText={setPassword}
@@ -120,13 +137,13 @@ const LoginScreen = ({ navigation }) => {
               {loading ? (
                 <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
-                <Text style={styles.buttonText}>AUTHENTICATE</Text>
+                <Text style={styles.buttonText}>{t('AUTHENTICATE')}</Text>
               )}
             </TouchableOpacity>
           </View>
           
           <Text style={styles.footerText}>
-            RESTRICTED ACCESS • AUTHORIZED PERSONNEL ONLY{'\n'}
+            {t('RESTRICTED ACCESS')}{'\n'}
             Version {Constants.expoConfig?.version || '1.0.0'}
           </Text>
         </ScrollView>
@@ -149,6 +166,22 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center', // Centers the content vertically
     padding: 24,
+    paddingTop: 40,
+  },
+  langToggleContainer: {
+    alignItems: 'flex-end',
+    marginBottom: 20,
+  },
+  langToggleBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: '#E2E8F0',
+  },
+  langToggleText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1E3A8A',
   },
   headerContainer: {
     alignItems: 'center',

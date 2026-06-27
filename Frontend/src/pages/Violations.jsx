@@ -6,8 +6,10 @@ import adminAPI from '../api/api';
 import { fmtDateTime } from '../utils/helpers';
 import { downloadCSV, checkinsToCSV } from '../utils/csv';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 export default function Violations() {
+  const { t } = useTranslation();
   const jurisdiction = useJurisdiction();
   const navigate = useNavigate();
   const [data, setData]   = useState([]);
@@ -49,10 +51,10 @@ export default function Violations() {
         <div>
           <h1 className="text-2xl font-black tracking-widest text-police-navy flex items-center gap-3 uppercase">
             <AlertTriangle size={24} className="text-red-600" />
-            RESTRICTED ZONE VIOLATIONS
+            {t('RESTRICTED ZONE VIOLATIONS')}
           </h1>
           <p className="text-xs font-bold tracking-widest text-slate-500 mt-2 uppercase">
-            {total} ACTIVE VIOLATION INCIDENTS DETECTED
+            {total} {t('ACTIVE VIOLATION INCIDENTS DETECTED')}
           </p>
         </div>
       </div>
@@ -66,13 +68,13 @@ export default function Violations() {
       {load ? (
         <div className="flex flex-col items-center justify-center py-16 bg-white rounded-lg border border-slate-200 shadow-sm">
           <div className="w-8 h-8 border-4 border-red-600 border-t-transparent rounded-full animate-spin mb-4"></div>
-          <p className="text-xs font-bold tracking-widest text-slate-400">RETRIEVING INCIDENT LOGS...</p>
+          <p className="text-xs font-bold tracking-widest text-slate-400">{t('RETRIEVING INCIDENT LOGS...')}</p>
         </div>
       ) : data.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-lg border border-slate-200 shadow-sm">
           <ShieldAlert size={48} className="mx-auto text-emerald-200 mb-4" />
-          <h2 className="text-lg font-black tracking-widest text-emerald-700">NO ACTIVE VIOLATIONS</h2>
-          <p className="text-sm font-medium text-slate-500 mt-2">All registered externees have remained compliant for the selected parameters.</p>
+          <h2 className="text-lg font-black tracking-widest text-emerald-700">{t('NO ACTIVE VIOLATIONS')}</h2>
+          <p className="text-sm font-medium text-slate-500 mt-2">{t('All registered externees have remained compliant for the selected parameters.')}</p>
         </div>
       ) : (
         <div className="space-y-6">
@@ -87,13 +89,13 @@ export default function Violations() {
                     {fmtDateTime(v.checked_in_at)}
                   </div>
                   <span className="bg-red-100 text-red-800 border border-red-300 text-[10px] font-black tracking-widest px-2.5 py-1 rounded-sm uppercase">
-                    INCIDENT DETECTED
+                    {t('INCIDENT DETECTED')}
                   </span>
                 </div>
                 
                 <div className="flex items-center gap-3">
                   <span className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">
-                    STATION: <span className="text-police-navy font-black">{v.police_station || 'UNASSIGNED'}</span>
+                    STATION: <span className="text-police-navy font-black">{v.police_station || t('UNASSIGNED')}</span>
                   </span>
                   {v.externment_section && (
                     <span className="text-[10px] font-black tracking-widest text-police-blue bg-blue-50 border border-blue-200 px-2 py-1 rounded-sm uppercase">

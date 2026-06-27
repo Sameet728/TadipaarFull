@@ -2,8 +2,10 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import adminAPI from '../api/api'
 import { useAuth } from '../context/AuthContext'
+import { useTranslation } from 'react-i18next'
 
 export default function AddAdmin() {
+  const { t } = useTranslation()
   const { auth } = useAuth()
   const [form, setForm] = useState({
     name: '',
@@ -150,49 +152,49 @@ export default function AddAdmin() {
       <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-8">
         <div className="flex items-center gap-3 mb-8 border-b border-slate-100 pb-4">
           <div className="w-2 h-8 bg-police-blue rounded-full"></div>
-          <h1 className="text-xl font-black text-police-navy tracking-widest uppercase">Create Admin Authority</h1>
+          <h1 className="text-xl font-black text-police-navy tracking-widest uppercase">{t('Create Admin Authority')}</h1>
         </div>
 
         <form onSubmit={onSubmit} className="space-y-5">
           <div>
-            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Full Name</label>
+            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">{t('Full Name')}</label>
             <input name="name" value={form.name} onChange={onChange} placeholder="Enter full name" className={selClass} />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Official ID</label>
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">{t('Official ID')}</label>
               <input name="login_id" value={form.login_id} onChange={onChange} placeholder="Login ID" className={selClass} />
             </div>
             <div>
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Password</label>
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">{t('Secure Password*')}</label>
               <input type="password" name="password" value={form.password} onChange={onChange} placeholder="••••••••" className={selClass} />
             </div>
           </div>
 
           <div>
-            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Administrative Designation</label>
+            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">{t('Administrative Designation')}</label>
             <select name="role" value={form.role} onChange={onChange} className={selClass}>
-              <option value="DCP">DCP (ZONE HEAD)</option>
-              <option value="ACP">ACP (DIVISION HEAD)</option>
-              <option value="PS">PS (STATION HEAD)</option>
+              <option value="DCP">{t('DCP (ZONE HEAD)')}</option>
+              <option value="ACP">{t('ACP (DIVISION HEAD)')}</option>
+              <option value="PS">{t('PS (STATION HEAD)')}</option>
             </select>
           </div>
 
           <div className="border-t border-slate-100 pt-5 space-y-5">
             <div>
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Assign Zone</label>
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">{t('Assign Zone')}</label>
               <select name="zone_id" value={form.zone_id} onChange={onChange} className={selClass} disabled={metaLoading}>
-                <option value="">{metaLoading ? 'LOADING JURISDICTIONS...' : 'SELECT ZONE'}</option>
+                <option value="">{metaLoading ? 'LOADING JURISDICTIONS...' : t('Select Zone')}</option>
                 {meta.zones.map((z) => <option key={z.id} value={z.id}>{z.name}</option>)}
               </select>
             </div>
 
             {(form.role === 'ACP' || form.role === 'PS') && (
               <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Assign ACP Division</label>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">{t('Select ACP Division')}</label>
                 <select name="acp_area_id" value={form.acp_area_id} onChange={onChange} className={selClass} disabled={!form.zone_id}>
-                  <option value="">SELECT ACP AREA</option>
+                  <option value="">{t('Select ACP Division')}</option>
                   {acpOptions.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
                 </select>
               </div>
@@ -200,9 +202,9 @@ export default function AddAdmin() {
 
             {form.role === 'PS' && (
               <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Assign Police Station</label>
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">{t('Select Station')}</label>
                 <select name="police_station_id" value={form.police_station_id} onChange={onChange} className={selClass} disabled={!form.acp_area_id}>
-                  <option value="">SELECT POLICE STATION</option>
+                  <option value="">{t('Select Station')}</option>
                   {psOptions.map((ps) => <option key={ps.id} value={ps.id}>{ps.name}</option>)}
                 </select>
               </div>
@@ -210,7 +212,7 @@ export default function AddAdmin() {
           </div>
 
           <button type="submit" disabled={loading} className="w-full bg-police-blue text-white rounded-md px-4 py-3 text-xs font-black tracking-widest uppercase hover:bg-blue-800 transition-colors shadow-lg disabled:opacity-50 mt-4">
-            {loading ? 'Processing Registration...' : 'Authorize Admin Account'}
+            {loading ? 'Processing Registration...' : t('Authorize Admin Account')}
           </button>
         </form>
 

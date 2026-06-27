@@ -2,8 +2,10 @@ import React, { useState, useMemo } from 'react'
 import { Filter, Download, RefreshCw } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { today, daysAgo } from '../utils/helpers'
+import { useTranslation } from 'react-i18next'
 
 export default function Filters({ onFilter, onDownload, loading, criminals = [] }) {
+  const { t } = useTranslation()
   const { auth } = useAuth()
   const role = String(auth?.role || '').toUpperCase()
 
@@ -83,19 +85,19 @@ export default function Filters({ onFilter, onDownload, loading, criminals = [] 
     <div className="bg-white rounded-xl shadow-sm p-4 mb-6 border border-gray-100">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2 text-gray-700 font-semibold text-sm">
-          <Filter size={16} /> Filters
+          <Filter size={16} /> {t('Filters')}
           {loading && <span className="text-xs text-gray-400 ml-1">(loading…)</span>}
         </div>
         <div className="flex gap-2">
           <button onClick={reset} className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 px-3 py-1.5 rounded-lg border hover:bg-gray-50">
-            <RefreshCw size={13}/> Reset
+            <RefreshCw size={13}/> {t('Reset')}
           </button>
           <button onClick={apply} disabled={loading} className="flex items-center gap-1 text-xs bg-police-600 text-white px-3 py-1.5 rounded-lg hover:bg-police-700 disabled:opacity-60">
-            <Filter size={13}/> Apply
+            <Filter size={13}/> {t('Apply')}
           </button>
           {onDownload && (
             <button onClick={onDownload} className="flex items-center gap-1 text-xs bg-green-600 text-white px-3 py-1.5 rounded-lg hover:bg-green-700">
-              <Download size={13}/> CSV
+              <Download size={13}/> {t('CSV')}
             </button>
           )}
         </div>
@@ -105,45 +107,45 @@ export default function Filters({ onFilter, onDownload, loading, criminals = [] 
 
         {showZone && (
           <select value={f.zone} onChange={e => set('zone', e.target.value)} className={sel}>
-            <option value="">All Zones</option>
+            <option value="">{t('All Zones')}</option>
             {zoneOptions.map(z => <option key={z} value={z}>{z}</option>)}
           </select>
         )}
 
         {showACP && (
           <select value={f.acpArea} onChange={e => set('acpArea', e.target.value)} className={sel}>
-            <option value="">All ACP Areas</option>
+            <option value="">{t('All ACP Areas')}</option>
             {acpOptions.map(a => <option key={a} value={a}>{a}</option>)}
           </select>
         )}
 
         {showPS && (
           <select value={f.policeStation} onChange={e => set('policeStation', e.target.value)} className={sel}>
-            <option value="">All Stations</option>
+            <option value="">{t('All Stations')}</option>
             {psOptions.map(p => <option key={p} value={p}>{p}</option>)}
           </select>
         )}
 
         <select value={f.section} onChange={e => set('section', e.target.value)} className={sel}>
-          <option value="">All Sections</option>
+          <option value="">{t('All Sections')}</option>
           <option value="55">Section 55</option>
           <option value="56">Section 56</option>
           <option value="57">Section 57</option>
         </select>
 
         <select value={f.status} onChange={e => set('status', e.target.value)} className={sel}>
-          <option value="">All Status</option>
+          <option value="">{t('All Status')}</option>
           <option value="compliant">Compliant</option>
           <option value="non_compliant">Non Compliant</option>
         </select>
 
         <div>
-          <label className="text-xs text-gray-400 block mb-0.5">From</label>
+          <label className="text-xs text-gray-400 block mb-0.5">{t('From')}</label>
           <input type="date" value={f.dateFrom} onChange={e => set('dateFrom', e.target.value)} className={sel + ' w-full'} />
         </div>
 
         <div>
-          <label className="text-xs text-gray-400 block mb-0.5">To</label>
+          <label className="text-xs text-gray-400 block mb-0.5">{t('To')}</label>
           <input type="date" value={f.dateTo} onChange={e => set('dateTo', e.target.value)} className={sel + ' w-full'} />
         </div>
 

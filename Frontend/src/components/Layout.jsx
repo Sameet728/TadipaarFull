@@ -4,8 +4,10 @@ import Sidebar from './Sidebar'
 import { Menu } from 'lucide-react'
 import { useAuth } from '../context/AuthContext'
 import { useRoleLabel } from '../hooks/useJurisdiction'
+import { useTranslation } from 'react-i18next'
 
 export default function Layout() {
+  const { t } = useTranslation()
   const [open, setOpen] = useState(true)
   const { auth } = useAuth()
   const label = useRoleLabel()
@@ -21,7 +23,7 @@ export default function Layout() {
               <Menu size={22} />
             </button>
             <div>
-              <p className="text-xs text-gray-400">Maharashtra Police</p>
+              <p className="text-xs text-gray-400">{t('MAHARASHTRA POLICE')}</p>
               <p className="text-sm font-semibold text-gray-700">{label}</p>
             </div>
           </div>
@@ -29,7 +31,7 @@ export default function Layout() {
             <div className="w-8 h-8 rounded-full bg-police-600 flex items-center justify-center text-white text-sm font-bold">
               {auth?.userName?.charAt(0)?.toUpperCase() || 'A'}
             </div>
-            <span className="text-sm text-gray-600 hidden sm:block">{auth?.userName || 'Admin'}</span>
+            <span className="text-sm text-gray-600 hidden sm:block">{auth?.userName || t('Admin')}</span>
           </div>
         </header>
         <main className="flex-1 overflow-y-auto p-6">

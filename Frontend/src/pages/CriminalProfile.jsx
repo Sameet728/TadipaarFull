@@ -11,6 +11,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import adminAPI from '../api/api'
 import { fmtDate, fmtDateTime } from '../utils/helpers'
+import { useTranslation } from 'react-i18next'
 
 // Leaflet icon fix
 delete L.Icon.Default.prototype._getIconUrl
@@ -342,6 +343,7 @@ const Section = ({ title, children, badge }) => (
 //  Main CriminalProfile Page
 // ══════════════════════════════════════════════════════════
 export default function CriminalProfile() {
+  const { t }       = useTranslation()
   const { id }      = useParams()
   const navigate    = useNavigate()
   const [data,      setData]    = useState(null)
@@ -431,13 +433,13 @@ export default function CriminalProfile() {
   return (
     <div>
       <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-gray-400 hover:text-gray-700 mb-6 text-sm font-medium">
-        <ArrowLeft size={16} /> Back to List
+        <ArrowLeft size={16} /> {t('Back to List')}
       </button>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
         <div>
-          <Section title="Profile">
+          <Section title={t('Profile')}>
             <div className="flex flex-col items-center mb-5">
               {criminal.photoUrl
                 ? <img src={criminal.photoUrl} className="w-28 h-28 rounded-full object-cover border-4 border-blue-100 mb-3" alt="" />
@@ -448,38 +450,38 @@ export default function CriminalProfile() {
               <h2 className="text-xl font-bold text-gray-800 text-center">{criminal.name}</h2>
               <p className="text-gray-400 text-sm mt-1">{criminal.loginId || criminal.login_id}</p>
               <div className="flex gap-2 mt-2 flex-wrap justify-center">
-                {criminal.externmentSection && <Chip label={`Section ${criminal.externmentSection}`} color="purple" />}
-                {criminal.isActive ? <Chip label="Active" color="green" /> : <Chip label="Inactive" color="red" />}
+                {criminal.externmentSection && <Chip label={`${t('Section')} ${criminal.externmentSection}`} color="purple" />}
+                {criminal.isActive ? <Chip label={t('Active')} color="green" /> : <Chip label={t('Inactive')} color="red" />}
               </div>
             </div>
-            <InfoRow label="Phone"      value={criminal.phone} />
-            <InfoRow label="Email"      value={criminal.email} />
-            {criminal.passwordVisible && <InfoRow label="Password" value={criminal.passwordVisible} />}
-            <InfoRow label="Case No."   value={criminal.caseNumber || criminal.case_number} />
-            <InfoRow label="Registered" value={fmtDate(criminal.createdAt)} />
+            <InfoRow label={t('Phone Number')} value={criminal.phone} />
+            <InfoRow label={t('Email Address')} value={criminal.email} />
+            {criminal.passwordVisible && <InfoRow label={t('Secure Password*')} value={criminal.passwordVisible} /> /* using existing translation */}
+            <InfoRow label={t('Case Number')} value={criminal.caseNumber || criminal.case_number} />
+            <InfoRow label={t('Registered')} value={fmtDate(criminal.createdAt)} />
           </Section>
 
-          <Section title="Jurisdiction">
-            <InfoRow label="Zone"           value={criminal.zone} />
-            <InfoRow label="ACP Area"       value={criminal.acpArea || criminal.acp_area} />
-            <InfoRow label="Police Station" value={criminal.policeStation || criminal.police_station} />
+          <Section title={t('Jurisdiction')}>
+            <InfoRow label={t('Zone*')} value={criminal.zone} />
+            <InfoRow label={t('ACP Division*')} value={criminal.acpArea || criminal.acp_area} />
+            <InfoRow label={t('Police Station*')} value={criminal.policeStation || criminal.police_station} />
           </Section>
         </div>
 
         <div className="lg:col-span-2 min-w-0">
-          <Section title="Externment Details">
-            <InfoRow label="Section"      value={criminal.externmentSection ? `Section ${criminal.externmentSection}` : null} />
-            <InfoRow label="Period From"  value={fmtDate(criminal.periodFrom  || criminal.period_from)} />
-            <InfoRow label="Period Till"  value={fmtDate(criminal.periodTill  || criminal.period_till)} />
-            <InfoRow label="Home Address" value={criminal.address} />
-            <InfoRow label="Residing At"  value={criminal.residenceAddress || criminal.residence_address} />
+          <Section title={t('Externment Details')}>
+            <InfoRow label={t('Section')} value={criminal.externmentSection ? `${t('Section')} ${criminal.externmentSection}` : null} />
+            <InfoRow label={t('Period From')} value={fmtDate(criminal.periodFrom  || criminal.period_from)} />
+            <InfoRow label={t('Period Till')} value={fmtDate(criminal.periodTill  || criminal.period_till)} />
+            <InfoRow label={t('Home Address')} value={criminal.address} />
+            <InfoRow label={t('Residing At')} value={criminal.residenceAddress || criminal.residence_address} />
           </Section>
 
           <Section
-            title={`Restricted Zone (Externment)`}
+            title={t('Restricted Zone (Externment)')}
             badge={
               <span className="text-xs text-red-500 font-semibold bg-red-50 px-2 py-0.5 rounded-full border border-red-100">
-                Geo-fenced
+                {t('Geo-fenced')}
               </span>
             }
           >
@@ -488,19 +490,19 @@ export default function CriminalProfile() {
             {restrictedAreas.length === 0 ? (
               <div className="text-center py-4">
                 <AlertTriangle size={28} className="text-gray-200 mx-auto mb-2" />
-                <p className="text-gray-400 text-sm font-medium">No restricted zone defined.</p>
+                <p className="text-gray-400 text-sm font-medium">{t('No restricted zone defined.')}</p>
                 <p className="text-gray-300 text-xs mt-1">
-                  Restricted zone is set during registration via "Assign Jurisdiction" option.
+                  {t('Restricted zone is set during registration via "Assign Jurisdiction" option.')}
                 </p>
               </div>
             ) : (
               <>
                 <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
                   <p className="text-xs text-red-800 font-semibold mb-1">
-                    📍 Territorial Restriction (Tadipaar)
+                    📍 {t('Territorial Restriction (Tadipaar)')}
                   </p>
                   <p className="text-xs text-red-600">
-                    The externee is legally banned from the assigned boundaries shown on the map at all times. Entering this zone will trigger a violation.
+                    {t('The externee is legally banned from the assigned boundaries shown on the map at all times. Entering this zone will trigger a violation.')}
                   </p>
                 </div>
                 <div className="space-y-2">
@@ -514,7 +516,7 @@ export default function CriminalProfile() {
                           <div>
                             <div className="flex flex-wrap items-center gap-2">
                               <p className="text-sm font-bold text-gray-800">{area.area_name}</p>
-                              <Chip label="Restricted Zone" color="red" />
+                              <Chip label={t('Restricted Zone')} color="red" />
                             </div>
                             {parseFloat(area.latitude) !== 0 && (
                               <p className="text-xs text-gray-400 mt-0.5">
@@ -522,7 +524,7 @@ export default function CriminalProfile() {
                               </p>
                             )}
                             <p className="text-xs text-red-600 font-semibold mt-1">
-                              ⛔ BANNED: Must stay outside {area.area_type === 'polygon' ? `${area.area_name} division` : 'Pune city boundary'}
+                              ⛔ {t('BANNED: Must stay outside')} {area.area_type === 'polygon' ? `${area.area_name} ${t('division')}` : t('Pune city boundary')}
                             </p>
                             {parseFloat(area.latitude) !== 0 ? (
                               <a
@@ -530,14 +532,14 @@ export default function CriminalProfile() {
                                 target="_blank" rel="noreferrer"
                                 className="text-xs text-blue-400 hover:underline mt-1 inline-flex items-center gap-1"
                               >
-                                <MapPin size={9} /> View on Google Maps
+                                <MapPin size={9} /> {t('View on Google Maps')}
                               </a>
                             ) : (
                               <button
                                 onClick={() => setFullScreenArea(area)}
                                 className="text-xs text-blue-400 hover:underline mt-1 inline-flex items-center gap-1 cursor-pointer"
                               >
-                                <MapPin size={9} /> View Interactive Map
+                                <MapPin size={9} /> {t('View Interactive Map')}
                               </button>
                             )}
                           </div>
@@ -564,7 +566,7 @@ export default function CriminalProfile() {
                   onChange={(e) => setSelectedDiv(e.target.value)}
                   disabled={addingDiv}
                 >
-                  <option value="">Select Jurisdiction to Assign...</option>
+                  <option value="">{t('Select Jurisdiction to Assign...')}</option>
                   {availableDivisions.map(div => (
                     <option key={div.id} value={div.name}>{div.name}</option>
                   ))}
@@ -574,15 +576,15 @@ export default function CriminalProfile() {
                   disabled={!selectedDiv || addingDiv}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition disabled:opacity-50"
                 >
-                  {addingDiv ? 'Adding...' : 'Add'}
+                  {addingDiv ? t('Adding...') : t('Add')}
                 </button>
               </div>
             )}
           </Section>
 
-          <Section title="Recent Check-ins (last 10)">
+          <Section title={t('Recent Check-ins (last 10)')}>
             {recentCheckIns.length === 0 ? (
-              <p className="text-gray-400 text-sm text-center py-4">No check-ins yet</p>
+              <p className="text-gray-400 text-sm text-center py-4">{t('No check-ins yet')}</p>
             ) : (
               <div className="space-y-3">
                 {recentCheckIns.map((ci, i) => (
@@ -594,14 +596,14 @@ export default function CriminalProfile() {
                       <div className="flex items-center justify-between mb-1 gap-2">
                         <span className="text-xs text-gray-400">{fmtDateTime(ci.checked_in_at)}</span>
                         <span className={`text-xs font-bold px-2 py-0.5 rounded-full shrink-0 ${ci.status === 'compliant' ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
-                          {ci.status === 'compliant' ? '✓ Compliant' : '✗ Violation'}
+                          {ci.status === 'compliant' ? `✓ ${t('Compliant')}` : `✗ ${t('Violation')}`}
                         </span>
                       </div>
                       <p className="text-xs text-gray-400">{parseFloat(ci.latitude || 0).toFixed(5)}, {parseFloat(ci.longitude || 0).toFixed(5)}</p>
                       {ci.violation_reason && <p className="text-xs text-red-600 mt-1 font-medium leading-tight">{ci.violation_reason}</p>}
                       <a href={`https://www.google.com/maps/search/?api=1&query=${ci.latitude},${ci.longitude}`} target="_blank" rel="noreferrer"
                         className="text-xs text-blue-400 hover:underline mt-1 inline-flex items-center gap-1">
-                        <MapPin size={10} /> View on Maps
+                        <MapPin size={10} /> {t('View on Maps')}
                       </a>
                     </div>
                   </div>

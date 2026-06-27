@@ -1,4 +1,5 @@
 import { useAuth } from '../context/AuthContext'
+import { useTranslation } from 'react-i18next'
 
 export const useJurisdiction = () => {
   const { auth } = useAuth()
@@ -14,12 +15,13 @@ export const useJurisdiction = () => {
 
 export const useRoleLabel = () => {
   const { auth } = useAuth()
+  const { t } = useTranslation()
   if (!auth) return ''
   const { zoneName, acpName, psName } = auth
   const role = String(auth.role || '').toUpperCase()
-  if (role === 'CP')  return 'Commissioner of Police — Pimpri Chinchwad'
-  if (role === 'DCP') return `DCP — ${zoneName || 'Zone'}`
-  if (role === 'ACP') return `ACP — ${acpName || 'ACP Area'}`
-  if (role === 'PS')  return `Police Station — ${psName || 'PS'}`
+  if (role === 'CP')  return t('Commissioner of Police — Pimpri Chinchwad')
+  if (role === 'DCP') return `${t('DCP')} — ${zoneName || t('Zone')}`
+  if (role === 'ACP') return `${t('ACP')} — ${acpName || t('ACP Area')}`
+  if (role === 'PS')  return `${t('Police Station')} — ${psName || t('PS')}`
   return ''
 }

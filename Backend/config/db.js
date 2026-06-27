@@ -48,6 +48,10 @@ pool.connect((err, client, release) => {
   console.log('PostgreSQL connected successfully');
 });
 
+pool.on('error', (err) => {
+  console.error('[DB] Unexpected error on idle client', err.message);
+});
+
 const query = (text, params) => pool.query(text, params);
 
 module.exports = { pool, query };

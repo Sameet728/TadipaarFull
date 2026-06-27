@@ -2,42 +2,45 @@ import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Eye, CheckCircle, XCircle, Clock, AlertTriangle, Loader2 } from 'lucide-react'
 import { fmtDate } from '../utils/helpers'
+import { useTranslation } from 'react-i18next'
 
 const StatusBadge = ({ stats }) => {
+  const { t } = useTranslation()
   if (!stats) return null
   if (stats.nonCompliantCount > 0)
-    return <span className="flex items-center gap-1 text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-semibold"><AlertTriangle size={11}/>Red Zone</span>
+    return <span className="flex items-center gap-1 text-xs bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-semibold"><AlertTriangle size={11}/>{t('Red Zone')}</span>
   if (stats.missedCheckinDays > 0)
-    return <span className="flex items-center gap-1 text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-semibold"><Clock size={11}/>{stats.missedCheckinDays}d missed</span>
+    return <span className="flex items-center gap-1 text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-semibold"><Clock size={11}/>{stats.missedCheckinDays}d {t('missed')}</span>
   if (stats.compliantCount > 0)
-    return <span className="flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-semibold"><CheckCircle size={11}/>Compliant</span>
-  return <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">No data</span>
+    return <span className="flex items-center gap-1 text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-semibold"><CheckCircle size={11}/>{t('Compliant')}</span>
+  return <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full">{t('No data')}</span>
 }
 
 export default function CriminalTable({ data, loading, showStation = true }) {
   const navigate = useNavigate()
+  const { t } = useTranslation()
   if (loading) return (
     <div className="flex flex-col items-center justify-center py-16 text-slate-400 gap-3">
       <Loader2 size={28} className="animate-spin text-[#1E3A8A]" />
-      <span className="text-[10px] font-black tracking-widest uppercase text-slate-400">Loading Records...</span>
+      <span className="text-[10px] font-black tracking-widest uppercase text-slate-400">{t('Loading Records...')}</span>
     </div>
   )
-  if (!data || data.length === 0) return <div className="text-center py-12 text-gray-400 font-medium">No records found</div>
+  if (!data || data.length === 0) return <div className="text-center py-12 text-gray-400 font-medium">{t('No records found')}</div>
 
   return (
     <div className="overflow-x-auto rounded-xl border border-gray-100 shadow-sm">
       <table className="w-full text-sm">
         <thead>
           <tr className="bg-police-900 text-white text-left">
-            <th className="px-4 py-3 font-semibold">Name</th>
-            <th className="px-4 py-3 font-semibold">Login ID</th>
-            <th className="px-4 py-3 font-semibold">Section</th>
-            {showStation && <th className="px-4 py-3 font-semibold">Police Station</th>}
-            <th className="px-4 py-3 font-semibold">Period</th>
-            <th className="px-4 py-3 font-semibold">Check-ins</th>
-            <th className="px-4 py-3 font-semibold">Status</th>
-            <th className="px-4 py-3 font-semibold">Last Check-in</th>
-            <th className="px-4 py-3 font-semibold">Action</th>
+            <th className="px-4 py-3 font-semibold">{t('Name')}</th>
+            <th className="px-4 py-3 font-semibold">{t('Login ID')}</th>
+            <th className="px-4 py-3 font-semibold">{t('Section')}</th>
+            {showStation && <th className="px-4 py-3 font-semibold">{t('Police Station')}</th>}
+            <th className="px-4 py-3 font-semibold">{t('Period')}</th>
+            <th className="px-4 py-3 font-semibold">{t('Check-ins')}</th>
+            <th className="px-4 py-3 font-semibold">{t('Status')}</th>
+            <th className="px-4 py-3 font-semibold">{t('Last Check-in')}</th>
+            <th className="px-4 py-3 font-semibold">{t('Action')}</th>
           </tr>
         </thead>
         <tbody>
@@ -71,9 +74,9 @@ export default function CriminalTable({ data, loading, showStation = true }) {
                 {c.stats?.lastCheckin ? new Date(c.stats.lastCheckin).toLocaleDateString('en-IN') : 'Never'}
               </td>
               <td className="px-4 py-3">
-                <button onClick={() => navigate(`/criminals/${c._id}`)}
+                <button onClick={() => navigate(`/criminals/${c._id || c.id}`)}
                   className="flex items-center gap-1 text-xs bg-police-600 text-white px-3 py-1.5 rounded-lg hover:bg-police-700">
-                  <Eye size={13}/> View
+                  <Eye size={13}/> {t('View')}
                 </button>
               </td>
             </tr>

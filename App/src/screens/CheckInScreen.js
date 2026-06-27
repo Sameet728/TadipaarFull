@@ -4,6 +4,7 @@ import {
   Image, Alert, ActivityIndicator, ScrollView,
   StatusBar, RefreshControl, Linking, Modal,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import BlinkCameraModal from './BlinkCameraModal';
 import * as Location from 'expo-location';
@@ -54,6 +55,7 @@ const FACE_STATUS = {
 
 // ─── Face Result Modal ─────────────────────────────────────────────────────────
 const FaceResultModal = ({ visible, result, onClose, onRetake }) => {
+  const { t } = useTranslation();
   if (!result) return null;
 
   const cfg = FACE_STATUS[result.faceCheckStatus] || FACE_STATUS.mismatch;
@@ -73,7 +75,7 @@ const FaceResultModal = ({ visible, result, onClose, onRetake }) => {
           </View>
 
           {/* Title */}
-          <Text style={[modal.title, { color: cfg.color }]}>{cfg.title}</Text>
+          <Text style={[modal.title, { color: cfg.color }]}>{t(cfg.title)}</Text>
 
           {/* Reason */}
           <Text style={modal.reason}>{result.reason}</Text>
@@ -91,26 +93,26 @@ const FaceResultModal = ({ visible, result, onClose, onRetake }) => {
           {/* Tips for failure cases */}
           {result.faceCheckStatus === 'no_face' && (
             <View style={modal.tips}>
-              <Text style={modal.tipsTitle}>Tips:</Text>
-              <Text style={modal.tipItem}>• Face the camera directly</Text>
-              <Text style={modal.tipItem}>• Ensure good lighting</Text>
-              <Text style={modal.tipItem}>• Remove sunglasses or mask</Text>
+              <Text style={modal.tipsTitle}>{t('Tips:')}</Text>
+              <Text style={modal.tipItem}>• {t('Face the camera directly')}</Text>
+              <Text style={modal.tipItem}>• {t('Ensure good lighting')}</Text>
+              <Text style={modal.tipItem}>• {t('Remove sunglasses or mask')}</Text>
             </View>
           )}
           {result.faceCheckStatus === 'multiple_faces' && (
             <View style={modal.tips}>
-              <Text style={modal.tipsTitle}>Tips:</Text>
-              <Text style={modal.tipItem}>• Only you should be in the frame</Text>
-              <Text style={modal.tipItem}>• Move away from other people</Text>
-              <Text style={modal.tipItem}>• Find a private space to check in</Text>
+              <Text style={modal.tipsTitle}>{t('Tips:')}</Text>
+              <Text style={modal.tipItem}>• {t('Only you should be in the frame')}</Text>
+              <Text style={modal.tipItem}>• {t('Move away from other people')}</Text>
+              <Text style={modal.tipItem}>• {t('Find a private space to check in')}</Text>
             </View>
           )}
           {result.faceCheckStatus === 'mismatch' && (
             <View style={modal.tips}>
-              <Text style={modal.tipsTitle}>Tips:</Text>
-              <Text style={modal.tipItem}>• Ensure good, even lighting</Text>
-              <Text style={modal.tipItem}>• Face the camera directly</Text>
-              <Text style={modal.tipItem}>• Contact your officer if issue persists</Text>
+              <Text style={modal.tipsTitle}>{t('Tips:')}</Text>
+              <Text style={modal.tipItem}>• {t('Ensure good, even lighting')}</Text>
+              <Text style={modal.tipItem}>• {t('Face the camera directly')}</Text>
+              <Text style={modal.tipItem}>• {t('Contact your officer if issue persists')}</Text>
             </View>
           )}
 
@@ -123,7 +125,7 @@ const FaceResultModal = ({ visible, result, onClose, onRetake }) => {
                 activeOpacity={0.8}
               >
                 <Ionicons name="camera-reverse-outline" size={16} color="#1E3A8A" />
-                <Text style={modal.retakeBtnText}>RETAKE PHOTO</Text>
+                <Text style={modal.retakeBtnText}>{t('RETAKE PHOTO')}</Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity
@@ -132,7 +134,7 @@ const FaceResultModal = ({ visible, result, onClose, onRetake }) => {
               activeOpacity={0.8}
             >
               <Text style={modal.closeBtnText}>
-                {result.faceCheckStatus === 'verified' ? 'CONTINUE' : 'DISMISS'}
+                {result.faceCheckStatus === 'verified' ? t('CONTINUE') : t('DISMISS')}
               </Text>
             </TouchableOpacity>
           </View>
@@ -144,6 +146,7 @@ const FaceResultModal = ({ visible, result, onClose, onRetake }) => {
 
 // ─── Main Screen ───────────────────────────────────────────────────────────────
 const CheckInScreen = ({ navigation }) => {
+  const { t, i18n } = useTranslation();
   const insets = useSafeAreaInsets();
   const netInfo = useNetInfo();
 
@@ -185,11 +188,17 @@ const CheckInScreen = ({ navigation }) => {
     fetchProfile();
   }, []);
 
+  const toggleLanguage = async () => {
+    const newLang = i18n.language === 'en' ? 'mr' : 'en';
+    await i18n.changeLanguage(newLang);
+    await AsyncStorage.setItem('appLanguage', newLang);
+  };
+
   const handleLogout = () => {
-    Alert.alert('Secure Logout', 'Are you sure you want to terminate this session?', [
-      { text: 'CANCEL', style: 'cancel' },
+    Alert.alert(t('Secure Logout'), t('Are you sure you want to terminate this session?'), [
+      { text: t('CANCEL'), style: 'cancel' },
       {
-        text: 'LOGOUT',
+        text: t('LOGOUT'),
         style: 'destructive',
         onPress: async () => {
           await removeToken();
@@ -467,15 +476,20 @@ const CheckInScreen = ({ navigation }) => {
 
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top + 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20 }]}>
-        <View>
-          <Text style={styles.headerTitle}>OFFICIAL VERIFICATION</Text>
-          <Text style={[styles.headerSub, { fontSize: 13, color: '#F59E0B', marginTop: 2 }]}>
-            {criminalName ? `WELCOME, ${criminalName.toUpperCase()}` : 'DAILY CHECK-IN PORTAL'}
+        <View style={{ flex: 1, paddingRight: 10 }}>
+          <Text style={styles.headerTitle} numberOfLines={2}>{t('OFFICIAL VERIFICATION')}</Text>
+          <Text style={[styles.headerSub, { fontSize: 11, color: '#F59E0B', marginTop: 2 }]} numberOfLines={1}>
+            {criminalName ? `WELCOME, ${criminalName.toUpperCase()}` : t('DAILY CHECK-IN PORTAL')}
           </Text>
         </View>
-        <TouchableOpacity onPress={handleLogout} style={{ padding: 8, backgroundColor: '#EFF6FF', borderRadius: 12, borderWidth: 1, borderColor: '#BFDBFE' }}>
-          <Ionicons name="log-out-outline" size={22} color="#1E3A8A" />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <TouchableOpacity onPress={toggleLanguage} style={{ padding: 8, backgroundColor: '#EFF6FF', borderRadius: 12, borderWidth: 1, borderColor: '#BFDBFE' }}>
+            <Ionicons name="language-outline" size={22} color="#1E3A8A" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={handleLogout} style={{ padding: 8, backgroundColor: '#EFF6FF', borderRadius: 12, borderWidth: 1, borderColor: '#BFDBFE' }}>
+            <Ionicons name="log-out-outline" size={22} color="#1E3A8A" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {!isCheckedInToday ? (
@@ -492,15 +506,15 @@ const CheckInScreen = ({ navigation }) => {
         }
       >
         <Text style={styles.instructionText}>
-          Ensure your face is clearly visible and you are outdoors for accurate GPS.
+          {t('Ensure your face is clearly visible and you are outdoors for accurate GPS.')}
         </Text>
 
         {/* ── Step indicators ── */}
         <View style={styles.stepsRow}>
           {[
-            { num: '1', label: 'PHOTO',    done: !!photo },
-            { num: '2', label: 'LOCATION', done: !!locData },
-            { num: '3', label: 'SUBMIT',   done: false },
+            { num: '1', label: t('PHOTO'),    done: !!photo },
+            { num: '2', label: t('LOCATION'), done: !!locData },
+            { num: '3', label: t('SUBMIT'),   done: false },
           ].map((s, i) => (
             <React.Fragment key={s.num}>
               <View style={styles.stepItem}>
@@ -518,10 +532,10 @@ const CheckInScreen = ({ navigation }) => {
 
         {/* ── Photo Section ── */}
         <View style={styles.sectionCard}>
-          <View style={styles.sectionHeader}>
-            <Ionicons name="camera-outline" size={16} color="#1E3A8A" />
-            <Text style={styles.sectionTitle}>FACIAL VERIFICATION</Text>
-          </View>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="camera-outline" size={18} color="#1E3A8A" style={{ marginRight: 6 }} />
+              <Text style={styles.sectionTitle}>{t('FACIAL VERIFICATION')}</Text>
+            </View>
 
           {photo ? (
             <View style={styles.previewBox}>
@@ -562,13 +576,13 @@ const CheckInScreen = ({ navigation }) => {
 
               <TouchableOpacity style={styles.retakeBtn} onPress={captureSelfie} activeOpacity={0.8}>
                 <Ionicons name="refresh-circle" size={18} color="#1E3A8A" />
-                <Text style={styles.retakeText}>RECAPTURE</Text>
+                <Text style={styles.retakeText}>{t('RECAPTURE')}</Text>
               </TouchableOpacity>
             </View>
           ) : (
             <TouchableOpacity style={styles.placeholder} onPress={captureSelfie} activeOpacity={0.85}>
-              <Ionicons name="person-outline" size={56} color="#94A3B8" />
-              <Text style={styles.placeholderText}>TAP TO CAPTURE PHOTO</Text>
+                  <Ionicons name="person-outline" size={40} color="#94A3B8" />
+                  <Text style={styles.placeholderText}>{t('TAP TO CAPTURE PHOTO')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -577,11 +591,11 @@ const CheckInScreen = ({ navigation }) => {
         <View style={styles.sectionCard}>
           <View style={styles.sectionHeader}>
             <Ionicons name="location-outline" size={16} color="#1E3A8A" />
-            <Text style={styles.sectionTitle}>GPS LOCATION</Text>
+            <Text style={styles.sectionTitle}>{t('GPS LOCATION')}</Text>
             {locData && (
               <TouchableOpacity onPress={refreshLocation} style={styles.refreshLocBtn} disabled={isLocating}>
                 <Ionicons name="refresh" size={14} color="#1E3A8A" />
-                <Text style={styles.refreshLocText}>REFRESH</Text>
+                <Text style={styles.refreshLocText}>{t('REFRESH')}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -595,17 +609,17 @@ const CheckInScreen = ({ navigation }) => {
             <View>
               <View style={styles.coordRow}>
                 <View style={styles.coordItem}>
-                  <Text style={styles.coordLabel}>LATITUDE</Text>
+                  <Text style={styles.coordLabel}>{t('LATITUDE')}</Text>
                   <Text style={styles.coordValue}>{locData.lat.toFixed(6)}</Text>
                 </View>
                 <View style={styles.coordDivider} />
                 <View style={styles.coordItem}>
-                  <Text style={styles.coordLabel}>LONGITUDE</Text>
+                  <Text style={styles.coordLabel}>{t('LONGITUDE')}</Text>
                   <Text style={styles.coordValue}>{locData.lng.toFixed(6)}</Text>
                 </View>
                 <View style={styles.coordDivider} />
                 <View style={styles.coordItem}>
-                  <Text style={styles.coordLabel}>ACCURACY</Text>
+                  <Text style={styles.coordLabel}>{t('ACCURACY')}</Text>
                   <Text style={[styles.coordValue, locData.accuracy > 50 ? { color: '#F59E0B' } : { color: '#059669' }]}>
                     ±{locData.accuracy}m
                   </Text>
@@ -642,15 +656,15 @@ const CheckInScreen = ({ navigation }) => {
                 </MapView>
                 <TouchableOpacity style={styles.openMapsBtn} onPress={openGoogleMaps}>
                   <Ionicons name="navigate" size={13} color="#fff" />
-                  <Text style={styles.openMapsBtnText}>Open in Google Maps</Text>
+                  <Text style={styles.openMapsBtnText}>{t('Open in Google Maps')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
           ) : (
             <TouchableOpacity style={styles.locPlaceholder} onPress={refreshLocation} activeOpacity={0.85}>
               <Ionicons name="locate-outline" size={36} color="#94A3B8" />
-              <Text style={styles.locPlaceholderText}>TAP TO GET LOCATION</Text>
-              <Text style={styles.locPlaceholderSub}>or capture photo to auto-detect</Text>
+              <Text style={styles.locPlaceholderText}>{t('TAP TO GET LOCATION')}</Text>
+              <Text style={styles.locPlaceholderSub}>{t('or capture photo to auto-detect')}</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -664,7 +678,7 @@ const CheckInScreen = ({ navigation }) => {
             activeOpacity={0.8}
           >
             <Ionicons name="camera" size={20} color="#fff" />
-            <Text style={styles.btnText}>{photo ? 'RETAKE PHOTO' : 'CAPTURE PHOTO'}</Text>
+            <Text style={styles.btnText}>{photo ? t('RETAKE PHOTO') : t('CAPTURE PHOTO')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -679,12 +693,12 @@ const CheckInScreen = ({ navigation }) => {
             {isSubmitting ? (
               <View style={styles.submittingRow}>
                 <ActivityIndicator color="#fff" />
-                <Text style={styles.btnText}>VERIFYING FACE...</Text>
+                <Text style={styles.btnText}>{t('VERIFYING FACE...')}</Text>
               </View>
             ) : (
               <>
                 <Ionicons name="shield-checkmark" size={20} color="#fff" />
-                <Text style={styles.btnText}>SUBMIT VERIFICATION</Text>
+                <Text style={styles.btnText}>{t('SUBMIT VERIFICATION')}</Text>
               </>
             )}
           </TouchableOpacity>
@@ -694,7 +708,7 @@ const CheckInScreen = ({ navigation }) => {
         <View style={styles.warningContainer}>
           <Ionicons name="alert-circle" size={16} color="#DC2626" />
           <Text style={styles.warningText}>
-            Submitting falsified information is a punishable offense under law.
+            {t('Submitting falsified information is a punishable offense under law.')}
           </Text>
         </View>
         </ScrollView>
@@ -703,12 +717,12 @@ const CheckInScreen = ({ navigation }) => {
           <View style={styles.doneIconWrapper}>
             <Ionicons name="checkmark-done-circle" size={100} color="#10B981" />
           </View>
-          <Text style={styles.doneTitle}>VERIFIED FOR TODAY</Text>
+          <Text style={styles.doneTitle}>{t('VERIFIED FOR TODAY')}</Text>
           <Text style={styles.doneText}>
-            You have successfully completed your daily check-in verification. Your presence has been recorded by the system.
+            {t('You have successfully completed your daily check-in verification. Your presence has been recorded by the system.')}
           </Text>
           <Text style={styles.doneSubText}>
-            Check-ins will automatically unlock tomorrow.
+            {t('Check-ins will automatically unlock tomorrow.')}
           </Text>
         </View>
       )}
@@ -851,10 +865,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: '800',
     color: '#0F172A',
-    letterSpacing: 1.5,
+    letterSpacing: 0.5,
   },
   headerSub: {
     color: '#1E3A8A',

@@ -4,19 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import adminAPI from '../api/api'
 import { Eye, EyeOff, LogIn, Shield } from 'lucide-react'
 
-const SEED = [
-  { role: 'CP',  username: 'cp_admin',   label: 'Commissioner of Police', color: 'border-yellow-300 bg-yellow-50 text-yellow-800' },
-  { role: 'DCP', username: 'dcp_zone1',  label: 'DCP — Zone 1',           color: 'border-blue-300   bg-blue-50   text-blue-800'   },
-  { role: 'ACP', username: 'acp_pimpri', label: 'ACP — Pimpri',           color: 'border-green-300  bg-green-50  text-green-800'  },
-  { role: 'PS',  username: 'ps_pimpri',  label: 'PS — Pimpri',            color: 'border-gray-300   bg-gray-50   text-gray-700'   },
-]
 
-const ROLE_BADGE = {
-  CP:  'bg-yellow-100 text-yellow-700 border border-yellow-300',
-  DCP: 'bg-blue-100   text-blue-700   border border-blue-300',
-  ACP: 'bg-green-100  text-green-700  border border-green-300',
-  PS:  'bg-gray-100   text-gray-600   border border-gray-300',
-}
 
 export default function Login() {
   const { login }  = useAuth()
@@ -155,32 +143,7 @@ export default function Login() {
           </div>
         </div>
 
-        {/* ── Test accounts ── */}
-        <div className="mt-6 bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest text-center mb-4">
-            Test Accounts — Password: admin123
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            {SEED.map(a => (
-              <button
-                key={a.username}
-                onClick={() => { setUsername(a.username); setPassword('admin123') }}
-                className={`text-left px-3 py-2.5 rounded-lg border text-xs font-medium hover:shadow-sm transition-all ${a.color}`}
-              >
-                <div className="flex items-center gap-1.5 mb-1">
-                  <span className={`text-xs font-black px-1.5 py-0.5 rounded ${ROLE_BADGE[a.role]}`}>
-                    {a.role}
-                  </span>
-                </div>
-                <div className="font-semibold leading-tight text-xs">{a.label}</div>
-                <div className="font-mono text-gray-400 text-xs mt-0.5">{a.username}</div>
-              </button>
-            ))}
-          </div>
-          <p className="text-gray-300 text-xs text-center mt-3">
-            Tap a card to autofill, then press Sign In
-          </p>
-        </div>
+
 
         {/* Download App Link */}
         <div className="mt-5 flex justify-center">

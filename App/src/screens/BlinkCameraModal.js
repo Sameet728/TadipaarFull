@@ -4,14 +4,16 @@ import {
   ActivityIndicator, Animated,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { useTranslation } from 'react-i18next';
 
 const POLL_MS       = 300;
 const COUNTDOWN_SEC = 3;
 
 export default function BlinkCameraModal({ visible, onCapture, onCancel }) {
+  const { t } = useTranslation();
   const cameraRef                       = useRef(null);
   const [permission, requestPermission] = useCameraPermissions();
-  const [hint, setHint]                 = useState('Look at the camera');
+  const [hint, setHint]                 = useState(t('Look at the camera'));
   const [countdown, setCountdown]       = useState(null);
   const [status, setStatus]             = useState('waiting'); // waiting | countdown | capturing
   const flashAnim                       = useRef(new Animated.Value(0)).current;
@@ -36,7 +38,7 @@ export default function BlinkCameraModal({ visible, onCapture, onCancel }) {
 
     setStatus('capturing');
     setCountdown(null);
-    setHint('📸 Capturing…');
+    setHint('📸 ' + t('Capturing…'));
 
     Animated.sequence([
       Animated.timing(flashAnim, { toValue: 1, duration: 60,  useNativeDriver: true }),
@@ -50,7 +52,7 @@ export default function BlinkCameraModal({ visible, onCapture, onCancel }) {
       capturingRef.current = false;
       activeRef.current    = true;
       setStatus('waiting');
-      setHint('Look at the camera');
+      setHint(t('Look at the camera'));
       loopRunningRef.current = false;
       setTimeout(runLoop, 300);
     }
@@ -60,7 +62,7 @@ export default function BlinkCameraModal({ visible, onCapture, onCancel }) {
     if (countdownRef.current) return;
     setStatus('countdown');
     setCountdown(COUNTDOWN_SEC);
-    setHint('Hold still...');
+    setHint(t('Hold still...'));
 
     let remaining = COUNTDOWN_SEC;
     countdownRef.current = setInterval(() => {
@@ -81,7 +83,7 @@ export default function BlinkCameraModal({ visible, onCapture, onCancel }) {
       flashAnim.setValue(0);
       setStatus('waiting');
       setCountdown(null);
-      setHint('Position your face in the oval');
+      setHint(t('Position your face in the oval'));
     } else {
       activeRef.current = false;
       stopCountdown();

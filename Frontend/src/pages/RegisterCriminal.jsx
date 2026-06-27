@@ -53,7 +53,10 @@ const dedupeById = (items = [], type = 'zone') =>
     ).values()
   )
 
+import { useTranslation } from 'react-i18next'
+
 export default function RegisterCriminal() {
+  const { t } = useTranslation()
   const navigate = useNavigate()
 
   const [meta, setMeta] = useState({ zones: [], acpAreas: [], policeStations: [] })
@@ -318,10 +321,10 @@ export default function RegisterCriminal() {
       <div className="mb-8 pb-6 border-b border-slate-200">
         <h1 className="text-xl md:text-2xl font-black tracking-widest text-[#1E3A8A] flex flex-wrap items-center gap-3 uppercase">
           <UserPlus size={24} className="shrink-0" />
-          Register New Externee
+          {t('Register New Externee')}
         </h1>
         <p className="text-xs font-bold tracking-widest text-slate-400 mt-2 uppercase">
-          Enter official subject details into the central database
+          {t('Enter official subject details into the central database')}
         </p>
       </div>
 
@@ -333,7 +336,7 @@ export default function RegisterCriminal() {
 
       <div className="bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-6">
         <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-5 pb-3 border-b border-slate-100 flex items-center gap-2">
-          <ShieldAlert size={14} className="text-[#1E3A8A]" /> Official Photograph
+          <ShieldAlert size={14} className="text-[#1E3A8A]" /> {t('Official Photograph')}
         </h3>
         <div className="flex items-center gap-6">
           {preview ? (
@@ -344,7 +347,7 @@ export default function RegisterCriminal() {
               onClick={() => fileRef.current.click()}
             >
               <Upload size={22} className="mb-1.5" />
-              <span className="text-[9px] font-black tracking-widest">UPLOAD</span>
+              <span className="text-[9px] font-black tracking-widest">{t('UPLOAD')}</span>
             </div>
           )}
           <div className="flex flex-col gap-2">
@@ -359,58 +362,58 @@ export default function RegisterCriminal() {
                 onClick={openQrScanner}
                 className="flex items-center gap-2 bg-emerald-600 text-white font-black tracking-widest text-[10px] px-6 py-2.5 rounded hover:bg-emerald-700 transition-colors shadow-md ring-2 ring-emerald-600 ring-offset-2"
               >
-                <QrCode size={16} /> SCAN QR (RECOMMENDED)
+                <QrCode size={16} /> {t('SCAN QR (RECOMMENDED)')}
               </button>
               <button
                 onClick={() => setShowWebcam(true)}
                 className="flex items-center gap-2 bg-slate-800 text-white font-bold tracking-widest text-[10px] px-5 py-2.5 rounded hover:bg-slate-700 transition-colors shadow-sm"
               >
-                <Camera size={14} /> USE WEBCAM
+                <Camera size={14} /> {t('USE WEBCAM')}
               </button>
             </div>
             <p className="text-[10px] font-bold text-slate-400 tracking-widest mt-2">
-              MOBILE PHONES CAPTURE THE HIGHEST QUALITY IMAGES FOR THE DATABASE.
+              {t('MOBILE PHONES CAPTURE THE HIGHEST QUALITY IMAGES FOR THE DATABASE.')}
             </p>
           </div>
           <input ref={fileRef} type="file" accept="image/jpeg,image/png" className="hidden" onChange={handlePhoto} />
         </div>
       </div>
 
-      <Section title="System Authentication">
-        <Field label="Subject Full Name" required>
-          <input className={INP} value={name} onChange={(e) => setName(e.target.value)} placeholder="Full legal name" />
+      <Section title={t('System Authentication')}>
+        <Field label={t('Subject Full Name*')} required>
+          <input className={INP} value={name} onChange={(e) => setName(e.target.value)} placeholder={t('Full legal name')} />
         </Field>
-        <Field label="Official Login ID" required>
+        <Field label={t('Official Login ID*')} required>
           <input className={INP} value={loginId} onChange={(e) => setLoginId(e.target.value)} placeholder="e.g. EXT-001" autoCapitalize="none" />
         </Field>
-        <Field label="Secure Password" required>
-          <input type="password" className={INP} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Minimum 8 characters" />
+        <Field label={t('Secure Password*')} required>
+          <input type="password" className={INP} value={password} onChange={(e) => setPassword(e.target.value)} placeholder={t('Minimum 8 characters')} />
         </Field>
-        <Field label="Case Number">
+        <Field label={t('Case Number')}>
           <input className={INP} value={caseNumber} onChange={(e) => setCaseNumber(e.target.value)} placeholder="CASE-YYYY-XXX" />
         </Field>
       </Section>
 
-      <Section title="Territorial Jurisdiction">
-        <Field label="Zone" required>
+      <Section title={t('Territorial Jurisdiction')}>
+        <Field label={t('Zone*')} required>
           <select className={INP} value={zoneId} onChange={(e) => handleZone(e.target.value)}>
-            <option value="">Select Zone</option>
+            <option value="">{t('Select Zone')}</option>
             {zoneOptions.map((z) => (
               <option key={z.id} value={z.id}>{z.name}</option>
             ))}
           </select>
         </Field>
-        <Field label="ACP Division" required>
+        <Field label={t('ACP Division*')} required>
           <select className={INP} value={acpAreaId} onChange={(e) => handleAcp(e.target.value)} disabled={!zoneId}>
-            <option value="">Select ACP Division</option>
+            <option value="">{t('Select ACP Division')}</option>
             {filteredACP.map((a) => (
               <option key={a.id} value={a.id}>{a.name}</option>
             ))}
           </select>
         </Field>
-        <Field label="Police Station" required>
+        <Field label={t('Police Station*')} required>
           <select className={INP} value={policeStationId} onChange={(e) => setPoliceStationId(e.target.value)} disabled={!acpAreaId}>
-            <option value="">Select Station</option>
+            <option value="">{t('Select Station')}</option>
             {filteredPS.map((p) => (
               <option key={p.id} value={p.id}>{p.name}</option>
             ))}
@@ -418,30 +421,30 @@ export default function RegisterCriminal() {
         </Field>
       </Section>
 
-      <Section title="Legal Externment Parameters">
-        <Field label="Externment Section" required>
+      <Section title={t('Legal Externment Parameters')}>
+        <Field label={t('Externment Section*')} required>
           <select className={INP} value={externmentSection} onChange={(e) => setExternmentSection(e.target.value)}>
-            <option value="">Select Legal Section</option>
+            <option value="">{t('Select Legal Section')}</option>
             <option value="55">Section 55</option>
             <option value="56">Section 56</option>
             <option value="57">Section 57</option>
           </select>
         </Field>
-        <Field label="Enforcement Start Date">
+        <Field label={t('Enforcement Start Date')}>
           <input type="date" className={INP} value={periodFrom} onChange={(e) => setPeriodFrom(e.target.value)} />
         </Field>
-        <Field label="Enforcement End Date">
+        <Field label={t('Enforcement End Date')}>
           <input type="date" className={INP} value={periodTill} onChange={(e) => setPeriodTill(e.target.value)} />
         </Field>
-        <Field label="Mandated Residence During Externment">
-          <input className={INP} value={residenceAddress} onChange={(e) => setResidenceAddress(e.target.value)} placeholder="Temporary residence address" />
+        <Field label={t('Mandated Residence During Externment')}>
+          <input className={INP} value={residenceAddress} onChange={(e) => setResidenceAddress(e.target.value)} placeholder={t('Temporary residence address')} />
         </Field>
-        <Field label="Territorial Restriction" fullWidth>
+        <Field label={t('Territorial Restriction')} fullWidth>
           <div className="flex flex-col gap-4">
             {availableDivisions.length > 0 ? (
               <div className="bg-slate-50 border border-slate-200 rounded-lg p-4">
                 <label className="block text-[10px] font-black tracking-widest text-slate-400 uppercase mb-3">
-                  Assign Jurisdiction
+                  {t('Assign Jurisdiction')}
                 </label>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {availableDivisions.map(div => (
@@ -466,15 +469,15 @@ export default function RegisterCriminal() {
         </Field>
       </Section>
 
-      <Section title="Contact Information">
-        <Field label="Phone Number">
-          <input type="tel" className={INP} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="Enter phone number" />
+      <Section title={t('Contact Information')}>
+        <Field label={t('Phone Number')}>
+          <input type="tel" className={INP} value={phone} onChange={(e) => setPhone(e.target.value)} placeholder={t('Enter phone number')} />
         </Field>
-        <Field label="Email Address">
-          <input type="email" className={INP} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Enter email address" />
+        <Field label={t('Email Address')}>
+          <input type="email" className={INP} value={email} onChange={(e) => setEmail(e.target.value)} placeholder={t('Enter email address')} />
         </Field>
-        <Field label="Permanent Registered Address" fullWidth>
-          <textarea className={INP} rows={3} value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Permanent home address" />
+        <Field label={t('Permanent Registered Address')} fullWidth>
+          <textarea className={INP} rows={3} value={address} onChange={(e) => setAddress(e.target.value)} placeholder={t('Permanent home address')} />
         </Field>
       </Section>
 
@@ -563,10 +566,10 @@ export default function RegisterCriminal() {
 
       <div className="flex gap-4 justify-end mt-8 border-t border-slate-200 pt-6">
         <button onClick={() => navigate(-1)} className="px-8 py-3 bg-white border border-slate-300 text-slate-600 rounded text-[10px] font-black tracking-widest hover:bg-slate-50 transition-colors">
-          CANCEL
+          {t('CANCEL')}
         </button>
         <button onClick={handleSubmit} disabled={loading} className="px-8 py-3 bg-[#1E3A8A] text-white rounded text-[10px] font-black tracking-widest hover:bg-[#163172] transition-colors shadow-md disabled:opacity-60 disabled:cursor-not-allowed">
-          {loading ? 'PROCESSING...' : 'AUTHORIZE & REGISTER'}
+          {loading ? t('PROCESSING...') : t('AUTHORIZE & REGISTER')}
         </button>
       </div>
     </div>

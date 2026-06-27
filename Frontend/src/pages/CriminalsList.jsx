@@ -4,10 +4,12 @@ import CriminalTable from '../components/CriminalTable';
 import Filters from '../components/Filters';
 import { useJurisdiction } from '../hooks/useJurisdiction';
 import { useAuth } from '../context/AuthContext';
+import { useTranslation } from 'react-i18next';
 import adminAPI from '../api/api';
 import { downloadCSV, criminalsToCSV } from '../utils/csv';
 
 export default function CriminalsList() {
+  const { t } = useTranslation();
   const jurisdiction = useJurisdiction();
   const { auth } = useAuth();
   const [data, setData]         = useState([]);
@@ -85,10 +87,10 @@ export default function CriminalsList() {
         <div>
           <h1 className="text-2xl font-black tracking-widest text-police-navy flex items-center gap-3 uppercase">
             <Database size={24} className="text-police-blue" />
-            EXTERNEE REGISTRY
+            {t('EXTERNEE REGISTRY')}
           </h1>
           <p className="text-xs font-bold tracking-widest text-slate-400 mt-2 uppercase">
-            {total} OFFICIAL RECORDS • ACTIVE JURISDICTION
+            {total} {t('OFFICIAL RECORDS • ACTIVE JURISDICTION')}
           </p>
         </div>
       </div>

@@ -6,8 +6,10 @@ import adminAPI from '../api/api';
 import { fmtDate } from '../utils/helpers';
 import { downloadCSV } from '../utils/csv';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 
 export default function MissedCheckIns() {
+  const { t } = useTranslation();
   const jurisdiction = useJurisdiction();
   const navigate = useNavigate();
   const [data, setData] = useState([]);
@@ -74,11 +76,11 @@ export default function MissedCheckIns() {
 
   const getUrgencyProfile = (days) => {
     if (days === null || days === undefined) {
-      return { label: 'NO PRIOR RECORDS', classes: 'bg-slate-100 text-slate-700 border-slate-300' };
+      return { label: t('NO PRIOR RECORDS'), classes: 'bg-slate-100 text-slate-700 border-slate-300' };
     }
-    if (days > 7) return { label: `${days} DAYS OVERDUE`, classes: 'bg-red-100 text-red-800 border-red-300' };
-    if (days > 3) return { label: `${days} DAYS OVERDUE`, classes: 'bg-orange-100 text-orange-800 border-orange-300' };
-    return { label: `${days} DAYS OVERDUE`, classes: 'bg-amber-100 text-amber-800 border-amber-300' };
+    if (days > 7) return { label: `${days} ${t('DAYS OVERDUE')}`, classes: 'bg-red-100 text-red-800 border-red-300' };
+    if (days > 3) return { label: `${days} ${t('DAYS OVERDUE')}`, classes: 'bg-orange-100 text-orange-800 border-orange-300' };
+    return { label: `${days} ${t('DAYS OVERDUE')}`, classes: 'bg-amber-100 text-amber-800 border-amber-300' };
   };
 
   return (
@@ -87,10 +89,10 @@ export default function MissedCheckIns() {
         <div>
           <h1 className="text-2xl font-black tracking-widest text-police-navy flex items-center gap-3 uppercase">
             <AlertTriangle size={24} className="text-red-600" />
-            NON-COMPLIANCE REGISTRY
+            {t('NON-COMPLIANCE REGISTRY')}
           </h1>
           <p className="text-xs font-bold tracking-widest text-slate-500 mt-2 uppercase">
-            {total} EXTERNEES HAVE FAILED TO COMPLETE DAILY VERIFICATION
+            {total} {t('EXTERNEES HAVE FAILED TO COMPLETE DAILY VERIFICATION')}
           </p>
         </div>
       </div>
@@ -138,10 +140,10 @@ export default function MissedCheckIns() {
                           {c.photo_url ? (
                             <img src={c.photo_url} className="w-10 h-10 rounded object-cover border border-slate-200 shadow-sm" alt="Subject" />
                           ) : (
-                            <div className="w-10 h-10 rounded bg-slate-100 border border-slate-200 flex items-center justify-center">
-                              <User size={16} className="text-slate-400" />
-                            </div>
-                          )}
+                            <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
+                      <User size={13} className="text-slate-400" />
+                      <span>{t('Subject')}</span>
+                    </div>      )}
                           <div>
                             <p className="text-sm font-bold text-police-navy uppercase tracking-wide">{c.name}</p>
                             <p className="text-[10px] font-bold tracking-widest text-slate-400 mt-0.5 uppercase">ID: {c.login_id}</p>
@@ -149,7 +151,7 @@ export default function MissedCheckIns() {
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-xs font-bold text-slate-700 uppercase">{c.policeStation || 'UNASSIGNED'}</div>
+                        <div className="text-xs font-bold text-slate-700">{c.policeStation || t('UNASSIGNED')}</div>
                         <div className="text-[10px] font-bold tracking-widest text-slate-400 mt-1 uppercase">
                           {c.acpArea || 'N/A'} • {c.zone || 'N/A'}
                         </div>
@@ -175,12 +177,12 @@ export default function MissedCheckIns() {
                       </td>
                       <td className="px-6 py-4">
                         <button 
-                          onClick={() => navigate(`/criminals/${c.id || c._id}`)}
-                          className="flex items-center text-[10px] font-black tracking-widest text-police-blue hover:text-blue-800 transition-colors uppercase"
-                        >
-                          INSPECT DOSSIER
-                          <ChevronRight size={14} className="ml-0.5" />
-                        </button>
+                    onClick={() => navigate(`/criminals/${c._id || c.id}`)}
+                    className="flex-1 sm:flex-none flex items-center justify-center gap-2 bg-police-navy hover:bg-police-blue text-white text-[11px] font-black tracking-widest px-6 py-3 rounded-lg transition-colors uppercase shadow-sm"
+                  >
+                    {t('INSPECT DOSSIER')}
+                    <ChevronRight size={14} />
+                  </button>
                       </td>
                     </tr>
                   );
