@@ -43,9 +43,8 @@ export default function Login() {
 
         {/* ── Official Header ── */}
         <div className="text-center mb-8">
-          {/* Emblem placeholder — replace src with actual Maharashtra Police emblem */}
-          <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-[#1E3A8A] mb-4 shadow-lg">
-            <Shield size={36} className="text-white" />
+          <div className="inline-flex items-center justify-center mb-4">
+            <img src="/icon.png" alt="Police Logo" className="w-24 h-24 object-contain drop-shadow-xl" />
           </div>
 
           <h1 className="text-xl font-black text-[#1E3A8A] uppercase tracking-widest leading-tight">
